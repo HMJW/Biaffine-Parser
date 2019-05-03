@@ -111,14 +111,14 @@ class Train(object):
             # save the model if it is the best so far
             if dev_metric > best_metric and epoch > config.patience:
                 best_e, best_metric = epoch, dev_metric
-                model.parser.save(config.model + f".{best_e}")
+                model.parser.save(config.model)
                 print(f"{t}s elapsed (saved)\n")
             else:
                 print(f"{t}s elapsed\n")
             total_time += t
             if epoch - best_e >= config.patience:
                 break
-        model.parser = BiaffineParser.load(config.model + f".{best_e}")
+        model.parser = BiaffineParser.load(config.model)
         loss, metric = model.evaluate(test_loader, config.punct)
 
         print(f"max score of dev is {best_metric.score:.2%} at epoch {best_e}")
