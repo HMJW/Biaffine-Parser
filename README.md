@@ -32,8 +32,8 @@ For all datasets, we follow the conventional data splits:
 
 |               |  UAS  |  LAS  |
 | ------------- | :---: | :---: |
-| tag embedding | 95.85 | 94.14 |
-| char lstm     | 96.02 | 94.38 |
+| tag embedding | 95.92 | 94.28 |
+| char lstm     | 96.14 | 94.56 |
 
 Note that punctuation is excluded in all evaluation metrics. 
 
