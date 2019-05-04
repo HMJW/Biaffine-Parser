@@ -47,14 +47,13 @@ class IndependentDropout(nn.Module):
     def extra_repr(self):
         return f"p={self.p}"
 
-    def forward(self, x, y, eps=1e-12):
+    def forward(self, *items, eps=1e-12):
         if self.training:
-            x_mask = torch.bernoulli(x.new_full(x.shape[:2], 1 - self.p))
-            y_mask = torch.bernoulli(y.new_full(y.shape[:2], 1 - self.p))
-            scale = 3.0 / (2.0 * x_mask + y_mask + eps)
-            x_mask *= scale
-            y_mask *= scale
-            x *= x_mask.unsqueeze(dim=-1)
-            y *= y_mask.unsqueeze(dim=-1)
+            masks = [torch.bernoulli(x.new_full(x.shape[:2], 1 - self.p))
+                     for x in items]
+            scale = len(items) / (sum(masks) + eps)
+            masks = [mask * scale for mask in masks]
+            items = [item * mask.unsqueeze(dim=-1)
+                     for item, mask in zip(items, masks)]
 
-        return x, y
+        return items
