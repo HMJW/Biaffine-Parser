@@ -89,7 +89,7 @@ class Train(object):
         best_e, best_metric = 1, Metric()
         model.optimizer = Adam(model.parser.parameters(),
                                config.lr,
-                               (config.beta_1, config.beta_2),
+                               (config.mu, config.nu),
                                config.epsilon)
         model.scheduler = ExponentialLR(model.optimizer,
                                         config.decay ** (1 / config.steps))
