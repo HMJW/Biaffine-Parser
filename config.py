@@ -18,7 +18,9 @@ class Config(object):
     def __repr__(self):
         info = f"{self.__class__.__name__}:\n"
         for i, (option, value) in enumerate(self.kwargs.items()):
-            info += f"{option:15} {value:<25}" + ('\n' if i % 2 > 0 else '')
+            item = f"{option:15}{value:<25}"
+            item += '\n' if len(item) > 40 or i % 2 > 0 else ''
+            info += item
         if i % 2 == 0:
             info += '\n'
 
