@@ -22,11 +22,11 @@ class BiaffineParser(nn.Module):
         # the char-lstm layer
         self.char_lstm = CHAR_LSTM(n_chars=config.n_chars,
                                    n_embed=config.n_char_embed,
-                                   n_out=config.n_char_out)
+                                   n_out=config.n_embed)
         self.embed_dropout = IndependentDropout(p=config.embed_dropout)
 
         # the word-lstm layer
-        self.lstm = BiLSTM(input_size=config.n_embed+config.n_char_out,
+        self.lstm = BiLSTM(input_size=config.n_embed*2,
                            hidden_size=config.n_lstm_hidden,
                            num_layers=config.n_lstm_layers,
                            dropout=config.lstm_dropout)
