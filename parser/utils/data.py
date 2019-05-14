@@ -13,10 +13,10 @@ def kmeans(x, k):
     dists, y = torch.abs_(x.unsqueeze(-1) - c).min(dim=-1)
 
     while old is None or not c.equal(old):
-        # handle the empty clusters
+        # if an empty cluster is encountered,
+        # choose the farthest datapoint from the biggest cluster
+        # and move that the empty one
         for i in range(k):
-            # choose the farthest datapoint from the biggest cluster
-            # and move that the empty cluster
             if not y.eq(i).any():
                 mask = y.eq(torch.arange(k).unsqueeze(-1))
                 lens = mask.sum(dim=-1)
