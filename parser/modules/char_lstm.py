@@ -29,7 +29,7 @@ class CHAR_LSTM(nn.Module):
         x = x[indices, :max_len]
         x = pack_padded_sequence(self.embed(x), sorted_lens, True)
         x, (hidden, _) = self.lstm(x)
-        hidden = torch.cat(torch.unbind(hidden), dim=1)
+        hidden = torch.cat(torch.unbind(hidden), dim=-1)
         hidden = hidden[inverse_indices]
 
         return hidden
