@@ -21,15 +21,15 @@ class CHAR_LSTM(nn.Module):
 
     def forward(self, x):
         mask = x.gt(0)
-        sorted_lens, indices = torch.sort(mask.sum(dim=1), descending=True)
+        lens = mask.sum(dim=1)
+
+        sorted_lens, indices = torch.sort(lens, descending=True)
         inverse_indices = indices.argsort()
         max_len = sorted_lens[0]
         x = x[indices, :max_len]
-        x = self.embed(x)
-
-        x = pack_padded_sequence(x, sorted_lens, True)
+        x = pack_padded_sequence(self.embed(x), sorted_lens, True)
         x, (hidden, _) = self.lstm(x)
-        reprs = torch.cat(torch.unbind(hidden), dim=1)
-        reprs = reprs[inverse_indices]
+        hidden = torch.cat(torch.unbind(hidden), dim=1)
+        hidden = hidden[inverse_indices]
 
-        return reprs
+        return hidden
