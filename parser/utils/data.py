@@ -50,13 +50,13 @@ class TextSampler(Sampler):
         self.shuffle = shuffle
         # NOTE: the final bucket count is less than or equal to n_buckets
         self.sizes, self.buckets = kmeans(x=lengths, k=n_buckets)
-        self.chunks = [max(size * len(bucket) // self.batch_size, 1)
+        self.chunks = [max(round(size * len(bucket) / batch_size), 1)
                        for size, bucket in zip(self.sizes, self.buckets)]
 
     def __iter__(self):
         # if shuffle, shffule both the buckets and samples in each bucket
         range_fn = torch.randperm if self.shuffle else torch.arange
-        for i in range_fn(len(self.buckets)):
+        for i in range_fn(len(self.buckets)).tolist():
             for batch in range_fn(len(self.buckets[i])).chunk(self.chunks[i]):
                 yield [self.buckets[i][j] for j in batch.tolist()]
 
