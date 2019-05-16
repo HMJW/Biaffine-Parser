@@ -61,9 +61,9 @@ class Corpus(object):
     def load(cls, fname):
         start, sentences = 0, []
         with open(fname, 'r') as f:
-            lines = [line for line in f]
+            lines = [line.strip() for line in f]
         for i, line in enumerate(lines):
-            if len(line) <= 1:
+            if not line:
                 sentence = Sentence(*zip(*[l.split() for l in lines[start:i]]))
                 sentences.append(sentence)
                 start = i + 1
