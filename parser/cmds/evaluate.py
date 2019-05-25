@@ -32,9 +32,9 @@ class Evaluate(object):
 
         print("Load the dataset")
         corpus = Corpus.load(config.fdata)
-        dataset = TextDataset(vocab.numericalize(corpus))
+        dataset = TextDataset(vocab.numericalize(corpus), config.buckets)
         # set the data loader
-        loader = batchify(dataset, config.batch_size, config.buckets)
+        loader = batchify(dataset, config.batch_size)
 
         print("Evaluate the dataset")
         loss, metric = model.evaluate(loader, config.punct)

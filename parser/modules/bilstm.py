@@ -53,7 +53,7 @@ class BiLSTM(nn.Module):
             else:
                 h = h[:batch_size]
                 c = c[:batch_size]
-            h, c = cell(input=x[t], hx=(h, c))
+            h, c = cell(x[t], (h, c))
             output.append(h)
             if self.training:
                 h = h * hid_mask[:batch_size]

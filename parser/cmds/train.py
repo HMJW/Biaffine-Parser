@@ -56,20 +56,17 @@ class Train(object):
         print(vocab)
 
         print("Load the dataset")
-        trainset = TextDataset(vocab.numericalize(train))
-        devset = TextDataset(vocab.numericalize(dev))
-        testset = TextDataset(vocab.numericalize(test))
+        trainset = TextDataset(vocab.numericalize(train), config.buckets)
+        devset = TextDataset(vocab.numericalize(dev), config.buckets)
+        testset = TextDataset(vocab.numericalize(test), config.buckets)
         # set the data loaders
         train_loader = batchify(dataset=trainset,
                                 batch_size=config.batch_size,
-                                n_buckets=config.buckets,
                                 shuffle=True)
         dev_loader = batchify(dataset=devset,
-                              batch_size=config.batch_size,
-                              n_buckets=config.buckets)
+                              batch_size=config.batch_size)
         test_loader = batchify(dataset=testset,
-                               batch_size=config.batch_size,
-                               n_buckets=config.buckets)
+                               batch_size=config.batch_size)
         print(f"{'train:':6} {len(trainset):5} sentences in total, "
               f"{len(train_loader):3} batches provided")
         print(f"{'dev:':6} {len(devset):5} sentences in total, "

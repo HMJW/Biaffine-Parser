@@ -44,13 +44,12 @@ def collate_fn(data):
 
 class TextSampler(Sampler):
 
-    def __init__(self, lengths, batch_size, n_buckets,
-                 shuffle=False, max_len=800):
-        self.lengths = lengths
+    def __init__(self, buckets, batch_size, shuffle=False, max_len=800):
         self.batch_size = batch_size
         self.shuffle = shuffle
-        # NOTE: the final bucket count is less than or equal to n_buckets
-        self.sizes, self.buckets = kmeans(x=lengths, k=n_buckets)
+        self.sizes, self.buckets = zip(*[
+            (size, bucket) for size, bucket in buckets.items()
+        ])
         # number of chunks in each bucket
         self.chunks = [
             max(round(size * len(bucket) / min(max_len * size, batch_size)), 1)
@@ -61,7 +60,10 @@ class TextSampler(Sampler):
         # if shuffle, shffule both the buckets and samples in each bucket
         range_fn = torch.randperm if self.shuffle else torch.arange
         for i in range_fn(len(self.buckets)).tolist():
-            for batch in range_fn(len(self.buckets[i])).chunk(self.chunks[i]):
+            split_sizes = [(len(self.buckets[i]) - j - 1) // self.chunks[i] + 1
+                           for j in range(self.chunks[i])]
+            # DON'T use `torch.chunk` which may return wrong number of chunks
+            for batch in range_fn(len(self.buckets[i])).split(split_sizes):
                 yield [self.buckets[i][j] for j in batch.tolist()]
 
     def __len__(self):
@@ -74,6 +76,9 @@ class TextDataset(Dataset):
         super(TextDataset, self).__init__()
 
         self.items = items
+        # NOTE: the final bucket count is less than or equal to n_buckets
+        self.centroids, self.clusters = kmeans(x=[len(i) for i in items[0]],
+                                               k=n_buckets)
 
     def __getitem__(self, index):
         return tuple(item[index] for item in self.items)
@@ -82,14 +87,13 @@ class TextDataset(Dataset):
         return len(self.items[0])
 
     @property
-    def lengths(self):
-        return [len(i) for i in self.items[0]]
+    def buckets(self):
+        return dict(zip(self.centroids, self.clusters))
 
 
-def batchify(dataset, batch_size, n_buckets=1, shuffle=False):
-    batch_sampler = TextSampler(lengths=dataset.lengths,
+def batchify(dataset, batch_size, shuffle=False):
+    batch_sampler = TextSampler(buckets=dataset.buckets,
                                 batch_size=batch_size,
-                                n_buckets=n_buckets,
                                 shuffle=shuffle)
     loader = DataLoader(dataset=dataset,
                         batch_sampler=batch_sampler,
