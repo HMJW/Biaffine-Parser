@@ -30,6 +30,7 @@ class Transformer(nn.Module):
 
         for layer in self.layers:
             x = layer(x, mask)
+            yield x
 
         return x
 

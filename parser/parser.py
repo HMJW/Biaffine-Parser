@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 
 from parser.modules import (CHAR_LSTM, MLP, Biaffine, BiLSTM,
-                            IndependentDropout, SharedDropout, Transformer)
+                            IndependentDropout, ScalarMix, SharedDropout,
+                            Transformer)
 
 import torch
 import torch.nn as nn
@@ -30,6 +31,7 @@ class BiaffineParser(nn.Module):
                                        n_heads=8,
                                        n_model=200,
                                        n_hidden=400)
+        self.scalar_mix = ScalarMix(6)
         self.lstm_dropout = SharedDropout(p=config.lstm_dropout)
 
         # the MLP layers
@@ -77,7 +79,7 @@ class BiaffineParser(nn.Module):
         word_embed, char_embed = self.embed_dropout(word_embed, char_embed)
         # concatenate the word and char representations
         x = torch.cat((word_embed, char_embed), dim=-1)
-        x = self.transformer(x, mask)
+        x = self.scalar_mix([i for i in self.transformer(x, mask)])
         x = self.lstm_dropout(x)
 
         # apply MLPs to the BiLSTM output states
