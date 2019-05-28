@@ -4,7 +4,7 @@ import os
 from datetime import datetime, timedelta
 from parser import BiaffineParser, Model
 from parser.metric import Metric
-from parser.utils import Corpus, Embedding, Vocab, NoamLR
+from parser.utils import Corpus, Embedding, Vocab
 from parser.utils.data import TextDataset, batchify
 
 import torch
@@ -85,11 +85,11 @@ class Train(object):
         total_time = timedelta()
         best_e, best_metric = 1, Metric()
         model.optimizer = Adam(model.parser.parameters(),
-                               200**(-0.5),
+                               config.lr,
                                (config.mu, config.nu),
                                config.epsilon)
-        model.scheduler = NoamLR(model.optimizer,
-                                 config.warmup_steps)
+        model.scheduler = ExponentialLR(model.optimizer,
+                                        config.decay ** (1 / config.steps))
 
         for epoch in range(1, config.epochs + 1):
             start = datetime.now()

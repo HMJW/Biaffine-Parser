@@ -63,7 +63,7 @@ class MultiheadAttention(nn.Module):
         self.wk = nn.Parameter(torch.Tensor(n_heads, n_model, n_embed))
         self.wv = nn.Parameter(torch.Tensor(n_heads, n_model, n_embed))
 
-        self.proj = nn.Linear(n_heads * n_embed, n_model)
+        self.proj = nn.Linear(n_heads * n_embed, n_model, False)
         self.norm = nn.LayerNorm(n_model)
         self.dropout = nn.Dropout(p)
 
@@ -73,6 +73,7 @@ class MultiheadAttention(nn.Module):
         nn.init.xavier_normal_(self.wq)
         nn.init.xavier_normal_(self.wk)
         nn.init.xavier_normal_(self.wv)
+        nn.init.xavier_normal_(self.proj.weight)
 
     def forward(self, Q, K, V, mask):
         residual = Q
@@ -94,14 +95,15 @@ class MultiheadAttention(nn.Module):
         attn = self.dropout(attn)
 
         # [n_heads * batch_size, seq_len, n_embed]
-        out = attn @ V
+        x = attn @ V
         # [batch_size, seq_len, n_heads * n_embed]
-        out = torch.cat(torch.split(out, batch_size, 0), -1)
+        x = torch.cat(torch.split(x, batch_size, 0), -1)
         # [batch_size, seq_len, n_model]
-        out = self.proj(out)
-        out = self.dropout(out)
+        x = self.proj(x)
+        x = self.dropout(x)
+        x = self.norm(x + residual)
 
-        return self.norm(out + residual)
+        return x
 
 
 class PosWiseFFN(nn.Module):
