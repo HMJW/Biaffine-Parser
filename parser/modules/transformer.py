@@ -15,16 +15,6 @@ class Transformer(nn.Module):
         ])
         self.dropout = nn.Dropout(p)
 
-    def init_pos(self, x):
-        seq_len, n_model = x[0].shape
-        pos = x.new_tensor(range(seq_len)).unsqueeze(-1)
-        pos = pos / 10000 ** (x.new_tensor(range(n_model)) * 2 / n_model)
-        pos[:, 0::2] = pos[:, 0::2].sin()
-        pos[:, 1::2] = pos[:, 1::2].cos()
-        pos = pos.unsqueeze(0).expand_as(x)
-
-        return pos
-
     def forward(self, x, mask):
         x += self.init_pos(x)
         x = self.dropout(x)
@@ -33,6 +23,17 @@ class Transformer(nn.Module):
             x = layer(x, mask)
 
         return x
+
+    @classmethod
+    def init_pos(cls, x):
+        seq_len, n_model = x[0].shape
+        pos = x.new_tensor(range(seq_len)).unsqueeze(-1)
+        pos = pos / 10000 ** (x.new_tensor(range(n_model)) // 2 * 2 / n_model)
+        pos[:, 0::2] = pos[:, 0::2].sin()
+        pos[:, 1::2] = pos[:, 1::2].cos()
+        pos = pos.unsqueeze(0).expand_as(x)
+
+        return pos
 
 
 class Layer(nn.Module):
@@ -93,7 +94,6 @@ class MultiHeadAttention(nn.Module):
         nn.init.xavier_normal_(self.wq.weight)
         nn.init.xavier_normal_(self.wk.weight)
         nn.init.xavier_normal_(self.wv.weight)
-        nn.init.xavier_normal_(self.wo.weight)
 
     def forward(self, q, k, v, mask):
         residual = q
