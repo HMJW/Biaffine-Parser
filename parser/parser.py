@@ -1,8 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from parser.modules import (CHAR_LSTM, MLP, Biaffine, BiLSTM,
-                            IndependentDropout, ScalarMix, SharedDropout,
-                            Transformer)
+                            IndependentDropout, SharedDropout)
 
 import torch
 import torch.nn as nn
@@ -27,24 +26,23 @@ class BiaffineParser(nn.Module):
         self.embed_dropout = IndependentDropout(p=config.embed_dropout)
 
         # the word-lstm layer
-        self.transformer = Transformer(n_layers=8,
-                                       n_heads=8,
-                                       n_model=200,
-                                       n_embed=200//8,
-                                       n_inner=400)
+        self.lstm = BiLSTM(input_size=config.n_embed*2,
+                           hidden_size=config.n_lstm_hidden,
+                           num_layers=config.n_lstm_layers,
+                           dropout=config.lstm_dropout)
         self.lstm_dropout = SharedDropout(p=config.lstm_dropout)
 
         # the MLP layers
-        self.mlp_arc_h = MLP(n_in=200,
+        self.mlp_arc_h = MLP(n_in=config.n_lstm_hidden*2,
                              n_hidden=config.n_mlp_arc,
                              dropout=config.mlp_dropout)
-        self.mlp_arc_d = MLP(n_in=200,
+        self.mlp_arc_d = MLP(n_in=config.n_lstm_hidden*2,
                              n_hidden=config.n_mlp_arc,
                              dropout=config.mlp_dropout)
-        self.mlp_rel_h = MLP(n_in=200,
+        self.mlp_rel_h = MLP(n_in=config.n_lstm_hidden*2,
                              n_hidden=config.n_mlp_rel,
                              dropout=config.mlp_dropout)
-        self.mlp_rel_d = MLP(n_in=200,
+        self.mlp_rel_d = MLP(n_in=config.n_lstm_hidden*2,
                              n_hidden=config.n_mlp_rel,
                              dropout=config.mlp_dropout)
 
@@ -79,8 +77,11 @@ class BiaffineParser(nn.Module):
         word_embed, char_embed = self.embed_dropout(word_embed, char_embed)
         # concatenate the word and char representations
         x = torch.cat((word_embed, char_embed), dim=-1)
-        x = self.transformer(x, mask)
-        x = self.lstm_dropout(x)
+
+        sorted_lens, indices = torch.sort(lens, descending=True)
+        inverse_indices = indices.argsort()
+        x = self.lstm(x[indices], mask[indices])
+        x = self.lstm_dropout(x)[inverse_indices]
 
         # apply MLPs to the BiLSTM output states
         arc_h = self.mlp_arc_h(x)
