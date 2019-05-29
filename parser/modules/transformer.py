@@ -82,10 +82,9 @@ class MultiHeadAttention(nn.Module):
         self.wq = nn.Linear(n_model, n_heads*n_embed, False)
         self.wk = nn.Linear(n_model, n_heads*n_embed, False)
         self.wv = nn.Linear(n_model, n_heads*n_embed, False)
-
         self.attn = ScaledDotProductAttention(n_embed ** 0.5, dropout)
-        self.norm = nn.LayerNorm(n_model)
-        self.proj = nn.Linear(n_heads*n_embed, n_model, False)
+        self.layer_norm = nn.LayerNorm(n_model)
+        self.wo = nn.Linear(n_heads*n_embed, n_model, False)
         self.dropout = nn.Dropout(dropout)
 
         self.reset_parameters()
@@ -94,6 +93,7 @@ class MultiHeadAttention(nn.Module):
         nn.init.xavier_normal_(self.wq.weight)
         nn.init.xavier_normal_(self.wk.weight)
         nn.init.xavier_normal_(self.wv.weight)
+        nn.init.xavier_normal_(self.wo.weight)
 
     def forward(self, q, k, v, mask):
         residual = q
@@ -118,9 +118,9 @@ class MultiHeadAttention(nn.Module):
         # [batch_size, seq_len, n_heads * n_embed]
         x = x.permute(1, 2, 0, 3).reshape(batch_size, seq_len, -1)
         # [batch_size, seq_len, n_model]
-        x = self.proj(x)
+        x = self.wo(x)
         x = self.dropout(x)
-        x = self.norm(x + residual)
+        x = self.layer_norm(x + residual)
 
         return x
 
@@ -132,7 +132,7 @@ class PosWiseFFN(nn.Module):
 
         self.w1 = nn.Sequential(nn.Linear(n_model, n_inner), nn.ReLU())
         self.w2 = nn.Linear(n_inner, n_model)
-        self.norm = nn.LayerNorm(n_model)
+        self.layer_norm = nn.LayerNorm(n_model)
         self.dropout = nn.Dropout(p)
 
     def forward(self, x):
@@ -140,6 +140,6 @@ class PosWiseFFN(nn.Module):
         x = self.w1(x)
         x = self.w2(x)
         x = self.dropout(x)
-        x = self.norm(x + residual)
+        x = self.layer_norm(x + residual)
 
         return x
