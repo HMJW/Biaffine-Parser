@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from parser.modules.dropout import SharedDropout
-from parser.modules.transformer import Layer
+from parser.modules.transformer import MultiHeadAttention
 
 import torch
 import torch.nn as nn
@@ -17,23 +17,22 @@ class BiLSTM(nn.Module):
         self.input_size = input_size
         self.hidden_size = hidden_size
         self.num_layers = num_layers
-        self.p = dropout
+        self.dropout = dropout
 
         self.f_cells = nn.ModuleList()
         self.b_cells = nn.ModuleList()
-        self.attentive_layers = nn.ModuleList()
+        self.attn_layers = nn.ModuleList()
         for layer in range(self.num_layers):
             self.f_cells.append(nn.LSTMCell(input_size=input_size,
                                             hidden_size=hidden_size))
             self.b_cells.append(nn.LSTMCell(input_size=input_size,
                                             hidden_size=hidden_size))
             if layer < self.num_layers - 1:
-                self.attentive_layers.append(Layer(8,
-                                                   hidden_size * 2,
-                                                   50,
-                                                   1200))
+                self.attn_layers.append(MultiHeadAttention(8,
+                                                           hidden_size*2,
+                                                           50,
+                                                           0.1))
             input_size = hidden_size * 2
-        self.dropout = SharedDropout(dropout)
         self.layer_norm = nn.LayerNorm(hidden_size * 2)
 
         self.reset_parameters()
@@ -58,7 +57,7 @@ class BiLSTM(nn.Module):
         output, seq_len = [], len(x)
         steps = reversed(range(seq_len)) if reverse else range(seq_len)
         if self.training:
-            hid_mask = SharedDropout.get_mask(h, self.p)
+            hid_mask = SharedDropout.get_mask(h, self.dropout)
 
         for t in steps:
             last_batch_size, batch_size = len(h), batch_sizes[t]
@@ -79,10 +78,9 @@ class BiLSTM(nn.Module):
         return output
 
     def forward(self, x, mask, hx=None):
-        residual = x
         lens = mask.sum(1)
         sequence = pack_padded_sequence(x, lens, True)
-        x, batch_sizes = sequence.data, sequence.batch_sizes.tolist()
+        batch_sizes = sequence.batch_sizes.tolist()
         max_batch_size = batch_sizes[0]
 
         if hx is None:
@@ -90,12 +88,11 @@ class BiLSTM(nn.Module):
             hx = (init, init)
 
         for layer in range(self.num_layers):
-            x = pack_padded_sequence(residual, lens, True).data
+            residual = x
             if self.training:
-                seq_mask = SharedDropout.get_mask(x[:max_batch_size], self.p)
-                seq_mask = torch.cat([seq_mask[:batch_size]
-                                      for batch_size in batch_sizes])
-                x *= seq_mask
+                seq_mask = SharedDropout.get_mask(x[:, 0], self.dropout)
+                x *= seq_mask.unsqueeze(1)
+            x = pack_padded_sequence(x, lens, True).data
             x = torch.split(x, batch_sizes)
             f_output = self.layer_forward(x=x,
                                           hx=hx,
@@ -111,12 +108,10 @@ class BiLSTM(nn.Module):
             x = pad_packed_sequence(PackedSequence(x, sequence.batch_sizes),
                                     True)[0]
             if layer < self.num_layers - 1:
-                x = self.dropout(x)
                 if layer == 0:
                     x = self.layer_norm(x)
                 else:
                     x = self.layer_norm(x + residual)
-                x = self.attentive_layers[layer](x, mask)
-            residual = x
+                x = self.attn_layers[layer](x, x, x, mask)
 
         return x
