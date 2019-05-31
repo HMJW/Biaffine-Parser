@@ -48,7 +48,7 @@ class Train(object):
             torch.save(vocab, config.vocab)
         config.update({
             'n_words': vocab.n_train_words,
-            'n_chars': vocab.n_chars,
+            'n_tags': vocab.n_tags,
             'n_rels': vocab.n_rels,
             'pad_index': vocab.pad_index,
             'unk_index': vocab.unk_index

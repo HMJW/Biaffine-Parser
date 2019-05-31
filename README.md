@@ -150,8 +150,7 @@ optional arguments:
 
 | Param         | Description                                      |                                 Value                                  |
 | :------------ | :----------------------------------------------- | :--------------------------------------------------------------------: |
-| n_embed       | dimension of word embedding                      |                                  100                                   |
-| n_char_embed  | dimension of char embedding                      |                                   50                                   |
+| n_embed       | dimension of embeddings                          |                                  100                                   |
 | embed_dropout | dropout ratio of embeddings                      |                                  0.33                                  |
 | n_lstm_hidden | dimension of lstm hidden state                   |                                  400                                   |
 | n_lstm_layers | number of lstm layers                            |                                   3                                    |

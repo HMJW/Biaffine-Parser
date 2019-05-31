@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from parser.modules import (CHAR_LSTM, MLP, Biaffine, BiLSTM,
+from parser.modules import (MLP, Biaffine, BiLSTM,
                             IndependentDropout, SharedDropout)
 
 import torch
@@ -18,10 +18,8 @@ class BiaffineParser(nn.Module):
         self.pretrained = nn.Embedding.from_pretrained(embeddings)
         self.word_embed = nn.Embedding(num_embeddings=config.n_words,
                                        embedding_dim=config.n_embed)
-        # the char-lstm layer
-        self.char_lstm = CHAR_LSTM(n_chars=config.n_chars,
-                                   n_embed=config.n_char_embed,
-                                   n_out=config.n_embed)
+        self.tag_embed = nn.Embedding(num_embeddings=config.n_tags,
+                                      embedding_dim=config.n_embed)
         self.embed_dropout = IndependentDropout(p=config.embed_dropout)
 
         # the word-lstm layer
@@ -61,7 +59,7 @@ class BiaffineParser(nn.Module):
     def reset_parameters(self):
         nn.init.zeros_(self.word_embed.weight)
 
-    def forward(self, words, chars):
+    def forward(self, words, tags):
         # get the mask and lengths of given batch
         mask = words.ne(self.pad_index)
         lens = mask.sum(dim=1)
@@ -71,11 +69,10 @@ class BiaffineParser(nn.Module):
 
         # get outputs from embedding layers
         word_embed = self.pretrained(words) + self.word_embed(ext_words)
-        char_embed = self.char_lstm(chars[mask])
-        char_embed = pad_sequence(torch.split(char_embed, lens.tolist()), True)
-        word_embed, char_embed = self.embed_dropout(word_embed, char_embed)
-        # concatenate the word and char representations
-        x = torch.cat((word_embed, char_embed), dim=-1)
+        tag_embed = self.tag_embed(tags)
+        word_embed, tag_embed = self.embed_dropout(word_embed, tag_embed)
+        # concatenate the word and tag representations
+        x = torch.cat((word_embed, tag_embed), dim=-1)
 
         sorted_lens, indices = torch.sort(lens, descending=True)
         inverse_indices = indices.argsort()

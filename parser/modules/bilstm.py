@@ -33,7 +33,8 @@ class BiLSTM(nn.Module):
                                                            50,
                                                            0.1))
             input_size = hidden_size * 2
-        self.layer_norm = nn.LayerNorm(hidden_size * 2)
+        self.layer_norms = nn.ModuleList([nn.LayerNorm(hidden_size * 2)
+                                          for _ in range(self.num_layers)])
 
         self.reset_parameters()
 
@@ -109,9 +110,9 @@ class BiLSTM(nn.Module):
                                     True)[0]
             if layer < self.num_layers - 1:
                 if layer == 0:
-                    x = self.layer_norm(x)
+                    x = self.layer_norms[layer](x)
                 else:
-                    x = self.layer_norm(x + residual)
+                    x = self.layer_norms[layer](x + residual)
                 x = self.attn_layers[layer](x, x, x, mask)
 
         return x
