@@ -5,8 +5,7 @@ from parser.modules import (CHAR_LSTM, MLP, Biaffine, BiLSTM,
 
 import torch
 import torch.nn as nn
-from torch.nn.utils.rnn import (pack_padded_sequence, pad_packed_sequence,
-                                pad_sequence)
+from torch.nn.utils.rnn import pad_sequence
 
 
 class BiaffineParser(nn.Module):

@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 
-import torch
 import torch.nn as nn
 
 
@@ -9,10 +8,8 @@ class Transformer(nn.Module):
     def __init__(self, n_layers, n_heads, n_model, n_embed, n_inner, p=0.1):
         super(Transformer, self).__init__()
 
-        self.layers = nn.ModuleList([
-            Layer(n_heads, n_model, n_embed, n_inner)
-            for _ in range(n_layers)
-        ])
+        self.layers = nn.ModuleList([Layer(n_heads, n_model, n_embed, n_inner)
+                                     for _ in range(n_layers)])
         self.dropout = nn.Dropout(p)
 
     def forward(self, x, mask):
