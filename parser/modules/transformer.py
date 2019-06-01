@@ -6,11 +6,11 @@ import torch.nn as nn
 class Transformer(nn.Module):
 
     def __init__(self, n_layers, n_heads, n_model, n_embed, n_inner,
-                 attn_dropout=0.1, pos_dropout=0.1):
+                 attn_dropout=0.1, ffn_dropout=0.1):
         super(Transformer, self).__init__()
 
         self.layers = nn.ModuleList([Layer(n_heads, n_model, n_embed, n_inner,
-                                           attn_dropout, pos_dropout)
+                                           attn_dropout, ffn_dropout)
                                      for _ in range(n_layers)])
         self.layer_norm = nn.LayerNorm(n_model)
 
@@ -38,11 +38,11 @@ class Transformer(nn.Module):
 class Layer(nn.Module):
 
     def __init__(self, n_heads, n_model, n_embed, n_inner,
-                 attn_dropout=0.1, pos_dropout=0.1):
+                 attn_dropout=0.1, ffn_dropout=0.1):
         super(Layer, self).__init__()
 
         self.attn = MultiHeadAttention(n_heads, n_model, n_embed, attn_dropout)
-        self.ffn = PosWiseFFN(n_model, n_inner, pos_dropout)
+        self.ffn = PosWiseFFN(n_model, n_inner, ffn_dropout)
 
     def forward(self, x, mask):
         x = self.attn(x, x, x, mask)

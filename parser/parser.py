@@ -29,7 +29,7 @@ class BiaffineParser(nn.Module):
                                        n_embed=config.n_model//config.n_heads,
                                        n_inner=config.n_inner,
                                        attn_dropout=config.attn_dropout,
-                                       pos_dropout=config.pos_dropout)
+                                       ffn_dropout=config.ffn_dropout)
 
         # the MLP layers
         self.mlp_arc_h = MLP(n_in=config.n_model,
@@ -60,6 +60,7 @@ class BiaffineParser(nn.Module):
 
     def reset_parameters(self):
         nn.init.zeros_(self.word_embed.weight)
+        nn.init.orthogonal_(self.projection.weight)
 
     def forward(self, words, tags):
         # get the mask and lengths of given batch
