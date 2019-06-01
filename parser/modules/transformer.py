@@ -5,10 +5,12 @@ import torch.nn as nn
 
 class Transformer(nn.Module):
 
-    def __init__(self, n_layers, n_heads, n_model, n_embed, n_inner, p=0.1):
+    def __init__(self, n_layers, n_heads, n_model, n_embed, n_inner,
+                 attn_dropout=0.1, pos_dropout=0.1):
         super(Transformer, self).__init__()
 
-        self.layers = nn.ModuleList([Layer(n_heads, n_model, n_embed, n_inner)
+        self.layers = nn.ModuleList([Layer(n_heads, n_model, n_embed, n_inner,
+                                           attn_dropout, pos_dropout)
                                      for _ in range(n_layers)])
         self.layer_norm = nn.LayerNorm(n_model)
 

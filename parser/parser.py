@@ -28,7 +28,8 @@ class BiaffineParser(nn.Module):
                                        n_model=config.n_model,
                                        n_embed=config.n_model//config.n_heads,
                                        n_inner=config.n_inner,
-                                       p=config.encoder_dropout)
+                                       attn_dropout=config.attn_dropout,
+                                       pos_dropout=config.pos_dropout)
 
         # the MLP layers
         self.mlp_arc_h = MLP(n_in=config.n_model,
