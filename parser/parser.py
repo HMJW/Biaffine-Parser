@@ -1,11 +1,9 @@
 # -*- coding: utf-8 -*-
 
-from parser.modules import (MLP, Biaffine, BiLSTM,
-                            IndependentDropout, SharedDropout)
+from parser.modules import MLP, Biaffine, IndependentDropout, Transformer
 
 import torch
 import torch.nn as nn
-from torch.nn.utils.rnn import pad_sequence
 
 
 class BiaffineParser(nn.Module):
@@ -21,26 +19,29 @@ class BiaffineParser(nn.Module):
         self.tag_embed = nn.Embedding(num_embeddings=config.n_tags,
                                       embedding_dim=config.n_embed)
         self.embed_dropout = IndependentDropout(p=config.embed_dropout)
+        self.projection = nn.Linear(in_features=config.n_embed*2,
+                                    out_features=config.n_model,
+                                    bias=False)
 
-        # the word-lstm layer
-        self.lstm = BiLSTM(input_size=config.n_embed*2,
-                           hidden_size=config.n_lstm_hidden,
-                           num_layers=config.n_lstm_layers,
-                           dropout=config.lstm_dropout)
-        self.lstm_dropout = SharedDropout(p=config.lstm_dropout)
+        self.transformer = Transformer(n_layers=config.n_layers,
+                                       n_heads=config.n_heads,
+                                       n_model=config.n_model,
+                                       n_embed=config.n_model//config.n_heads,
+                                       n_inner=config.n_inner,
+                                       p=config.encoder_dropout)
 
         # the MLP layers
-        self.mlp_arc_h = MLP(n_in=config.n_lstm_hidden*2,
-                             n_hidden=config.n_mlp_arc,
+        self.mlp_arc_h = MLP(n_in=config.n_model,
+                             n_out=config.n_mlp_arc,
                              dropout=config.mlp_dropout)
-        self.mlp_arc_d = MLP(n_in=config.n_lstm_hidden*2,
-                             n_hidden=config.n_mlp_arc,
+        self.mlp_arc_d = MLP(n_in=config.n_model,
+                             n_out=config.n_mlp_arc,
                              dropout=config.mlp_dropout)
-        self.mlp_rel_h = MLP(n_in=config.n_lstm_hidden*2,
-                             n_hidden=config.n_mlp_rel,
+        self.mlp_rel_h = MLP(n_in=config.n_model,
+                             n_out=config.n_mlp_rel,
                              dropout=config.mlp_dropout)
-        self.mlp_rel_d = MLP(n_in=config.n_lstm_hidden*2,
-                             n_hidden=config.n_mlp_rel,
+        self.mlp_rel_d = MLP(n_in=config.n_model,
+                             n_out=config.n_mlp_rel,
                              dropout=config.mlp_dropout)
 
         # the Biaffine layers
@@ -62,7 +63,6 @@ class BiaffineParser(nn.Module):
     def forward(self, words, tags):
         # get the mask and lengths of given batch
         mask = words.ne(self.pad_index)
-        lens = mask.sum(dim=1)
         # set the indices larger than num_embeddings to unk_index
         ext_mask = words.ge(self.word_embed.num_embeddings)
         ext_words = words.masked_fill(ext_mask, self.unk_index)
@@ -72,12 +72,10 @@ class BiaffineParser(nn.Module):
         tag_embed = self.tag_embed(tags)
         word_embed, tag_embed = self.embed_dropout(word_embed, tag_embed)
         # concatenate the word and tag representations
-        x = torch.cat((word_embed, tag_embed), dim=-1)
+        embed = torch.cat((word_embed, tag_embed), dim=-1)
 
-        sorted_lens, indices = torch.sort(lens, descending=True)
-        inverse_indices = indices.argsort()
-        x = self.lstm(x[indices], mask[indices])
-        x = self.lstm_dropout(x)[inverse_indices]
+        x = self.projection(embed)
+        x = self.transformer(x, mask)
 
         # apply MLPs to the BiLSTM output states
         arc_h = self.mlp_arc_h(x)

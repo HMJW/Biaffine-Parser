@@ -10,11 +10,11 @@ class Transformer(nn.Module):
 
         self.layers = nn.ModuleList([Layer(n_heads, n_model, n_embed, n_inner)
                                      for _ in range(n_layers)])
-        self.dropout = nn.Dropout(p)
+        self.layer_norm = nn.LayerNorm(n_model)
 
     def forward(self, x, mask):
         x += self.init_pos(x)
-        x = self.dropout(x)
+        x = self.layer_norm(x)
 
         for layer in self.layers:
             x = layer(x, mask)
@@ -80,7 +80,7 @@ class MultiHeadAttention(nn.Module):
         self.wq = nn.Linear(n_model, n_heads*n_embed, False)
         self.wk = nn.Linear(n_model, n_heads*n_embed, False)
         self.wv = nn.Linear(n_model, n_heads*n_embed, False)
-        self.attn = ScaledDotProductAttention(n_embed ** 0.5, dropout)
+        self.attn = ScaledDotProductAttention(n_embed**0.5, dropout)
         self.layer_norm = nn.LayerNorm(n_model)
         self.wo = nn.Linear(n_heads*n_embed, n_model, False)
         self.dropout = nn.Dropout(dropout)
@@ -127,7 +127,8 @@ class PosWiseFFN(nn.Module):
     def __init__(self, n_model, n_inner, p=0.1):
         super(PosWiseFFN, self).__init__()
 
-        self.w1 = nn.Sequential(nn.Linear(n_model, n_inner), nn.ReLU())
+        self.w1 = nn.Linear(n_model, n_inner)
+        self.activation = nn.ReLU()
         self.w2 = nn.Linear(n_inner, n_model)
         self.layer_norm = nn.LayerNorm(n_model)
         self.dropout = nn.Dropout(p)
@@ -135,6 +136,7 @@ class PosWiseFFN(nn.Module):
     def forward(self, x):
         residual = x
         x = self.w1(x)
+        x = self.activation(x)
         x = self.w2(x)
         x = self.dropout(x)
         x = self.layer_norm(x + residual)

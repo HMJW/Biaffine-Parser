@@ -6,10 +6,10 @@ from parser import BiaffineParser, Model
 from parser.metric import Metric
 from parser.utils import Corpus, Embedding, Vocab
 from parser.utils.data import TextDataset, batchify
+from parser.utils.optim import NoamLR
 
 import torch
 from torch.optim import Adam
-from torch.optim.lr_scheduler import ExponentialLR
 
 
 class Train(object):
@@ -85,11 +85,10 @@ class Train(object):
         total_time = timedelta()
         best_e, best_metric = 1, Metric()
         model.optimizer = Adam(model.parser.parameters(),
-                               config.lr,
+                               config.n_model**(-0.5),
                                (config.mu, config.nu),
                                config.epsilon)
-        model.scheduler = ExponentialLR(model.optimizer,
-                                        config.decay ** (1 / config.steps))
+        model.scheduler = NoamLR(model.optimizer, config.warmup_steps)
 
         for epoch in range(1, config.epochs + 1):
             start = datetime.now()
