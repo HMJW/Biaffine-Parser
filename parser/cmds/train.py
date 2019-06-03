@@ -85,10 +85,13 @@ class Train(object):
         total_time = timedelta()
         best_e, best_metric = 1, Metric()
         model.optimizer = Adam(model.parser.parameters(),
-                               config.n_model**(-0.5),
+                               config.lr,
                                (config.mu, config.nu),
                                config.epsilon)
-        model.scheduler = NoamLR(model.optimizer, config.warmup_steps)
+        model.scheduler = NoamLR(model.optimizer,
+                                 config.warmup_steps,
+                                 config.decay,
+                                 config.decay_steps)
 
         for epoch in range(1, config.epochs + 1):
             start = datetime.now()

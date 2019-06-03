@@ -13,10 +13,12 @@ class Transformer(nn.Module):
                                            attn_dropout, ffn_dropout)
                                      for _ in range(n_layers)])
         self.layer_norm = nn.LayerNorm(n_model)
+        self.dropout = nn.Dropout(attn_dropout)
 
     def forward(self, x, mask):
         x += self.init_pos(x)
         x = self.layer_norm(x)
+        x = self.dropout(x)
 
         for layer in self.layers:
             x = layer(x, mask)
