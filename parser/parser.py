@@ -31,7 +31,7 @@ class BiaffineParser(nn.Module):
                                        n_inner=config.n_inner,
                                        attn_dropout=config.attn_dropout,
                                        ffn_dropout=config.ffn_dropout)
-        self.encoder_dropout = SharedDropout(config.encoder_dropout)
+        self.trans_dropout = SharedDropout(config.trans_dropout)
 
         # the MLP layers
         self.mlp_arc_h = MLP(n_in=config.n_model,
@@ -80,7 +80,7 @@ class BiaffineParser(nn.Module):
 
         x = self.projection(embed)
         x = self.transformer(x, mask)
-        x = self.encoder_dropout(x)
+        x = self.trans_dropout(x)
 
         # apply MLPs to the BiLSTM output states
         arc_h = self.mlp_arc_h(x)

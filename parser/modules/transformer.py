@@ -92,9 +92,9 @@ class MultiHeadAttention(nn.Module):
         self.reset_parameters()
 
     def reset_parameters(self):
-        nn.init.xavier_normal_(self.wq.weight)
-        nn.init.xavier_normal_(self.wk.weight)
-        nn.init.xavier_normal_(self.wv.weight)
+        nn.init.orthogonal_(self.wq.weight)
+        nn.init.orthogonal_(self.wk.weight)
+        nn.init.orthogonal_(self.wv.weight)
 
     def forward(self, q, k, v, mask):
         residual = q
@@ -137,10 +137,19 @@ class PosWiseFFN(nn.Module):
         self.layer_norm = nn.LayerNorm(n_model)
         self.dropout = nn.Dropout(p)
 
+        self.reset_parameters()
+
+    def reset_parameters(self):
+        nn.init.orthogonal_(self.w1.weight)
+        nn.init.orthogonal_(self.w2.weight)
+        nn.init.zeros_(self.w1.bias)
+        nn.init.zeros_(self.w2.bias)
+
     def forward(self, x):
         residual = x
         x = self.w1(x)
         x = self.activation(x)
+        x = self.dropout(x)
         x = self.w2(x)
         x = self.dropout(x)
         x = self.layer_norm(x + residual)
