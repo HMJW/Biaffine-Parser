@@ -128,14 +128,14 @@ class MultiHeadAttention(nn.Module):
 
 class PosWiseFFN(nn.Module):
 
-    def __init__(self, n_model, n_inner, p=0.1):
+    def __init__(self, n_model, n_inner, dropout=0.1):
         super(PosWiseFFN, self).__init__()
 
         self.w1 = nn.Linear(n_model, n_inner)
         self.activation = nn.ReLU()
         self.w2 = nn.Linear(n_inner, n_model)
         self.layer_norm = nn.LayerNorm(n_model)
-        self.dropout = nn.Dropout(p)
+        self.dropout = nn.Dropout(dropout)
 
         self.reset_parameters()
 

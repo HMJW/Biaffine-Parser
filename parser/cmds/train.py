@@ -90,8 +90,7 @@ class Train(object):
                                config.epsilon)
         model.scheduler = NoamLR(model.optimizer,
                                  config.warmup_steps,
-                                 config.decay,
-                                 config.decay_steps)
+                                 config.decay**(1/config.decay_steps))
 
         for epoch in range(1, config.epochs + 1):
             start = datetime.now()
