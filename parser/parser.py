@@ -29,6 +29,7 @@ class BiaffineParser(nn.Module):
                                        n_model=config.n_model,
                                        n_embed=config.n_model//config.n_heads,
                                        n_inner=config.n_inner,
+                                       input_dropout=config.input_dropout,
                                        attn_dropout=config.attn_dropout,
                                        ffn_dropout=config.ffn_dropout)
         self.trans_dropout = SharedDropout(config.trans_dropout)

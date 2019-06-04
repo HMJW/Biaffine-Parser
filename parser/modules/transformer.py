@@ -6,14 +6,14 @@ import torch.nn as nn
 class Transformer(nn.Module):
 
     def __init__(self, n_layers, n_heads, n_model, n_embed, n_inner,
-                 attn_dropout=0.1, ffn_dropout=0.1):
+                 input_dropout=0.1, attn_dropout=0.1, ffn_dropout=0.1):
         super(Transformer, self).__init__()
 
         self.layers = nn.ModuleList([Layer(n_heads, n_model, n_embed, n_inner,
                                            attn_dropout, ffn_dropout)
                                      for _ in range(n_layers)])
         self.layer_norm = nn.LayerNorm(n_model)
-        self.dropout = nn.Dropout(attn_dropout)
+        self.dropout = nn.Dropout(input_dropout)
 
     def forward(self, x, mask):
         x += self.init_pos(x)
