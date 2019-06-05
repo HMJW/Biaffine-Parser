@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 
+from parser.modules.dropout import SharedDropout
+
 import torch.nn as nn
 
 
@@ -13,7 +15,7 @@ class Transformer(nn.Module):
                                            attn_dropout, ffn_dropout)
                                      for _ in range(n_layers)])
         self.layer_norm = nn.LayerNorm(n_model)
-        self.dropout = nn.Dropout(input_dropout)
+        self.dropout = SharedDropout(input_dropout)
 
     def forward(self, x, mask):
         x += self.init_pos(x)
@@ -59,7 +61,7 @@ class ScaledDotProductAttention(nn.Module):
         super(ScaledDotProductAttention, self).__init__()
 
         self.scale = scale
-        self.dropout = nn.Dropout(dropout)
+        self.dropout = SharedDropout(dropout)
         self.softmax = nn.Softmax(dim=-1)
 
     def forward(self, q, k, v, mask):
@@ -87,7 +89,7 @@ class MultiHeadAttention(nn.Module):
         self.attn = ScaledDotProductAttention(n_embed**0.5, dropout)
         self.layer_norm = nn.LayerNorm(n_model)
         self.wo = nn.Linear(n_heads*n_embed, n_model, False)
-        self.dropout = nn.Dropout(dropout)
+        self.dropout = SharedDropout(dropout)
 
         self.reset_parameters()
 
@@ -135,7 +137,7 @@ class PosWiseFFN(nn.Module):
         self.activation = nn.ReLU()
         self.w2 = nn.Linear(n_inner, n_model)
         self.layer_norm = nn.LayerNorm(n_model)
-        self.dropout = nn.Dropout(dropout)
+        self.dropout = SharedDropout(dropout)
 
         self.reset_parameters()
 
