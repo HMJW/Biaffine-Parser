@@ -45,12 +45,12 @@ class Layer(nn.Module):
                  attn_dropout=0.1, ffn_dropout=0.1):
         super(Layer, self).__init__()
 
-        self.attn = MultiHeadAttention(n_heads, n_model, n_embed, attn_dropout)
         self.ffn = PosWiseFFN(n_model, n_inner, ffn_dropout)
+        self.attn = MultiHeadAttention(n_heads, n_model, n_embed, attn_dropout)
 
     def forward(self, x, mask):
-        x = self.attn(x, x, x, mask)
         x = self.ffn(x)
+        x = self.attn(x, x, x, mask)
 
         return x
 
