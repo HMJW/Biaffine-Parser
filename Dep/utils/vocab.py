@@ -9,6 +9,7 @@ import torch
 class Vocab(object):
     PAD = '<PAD>'
     UNK = '<UNK>'
+    ROOT = '<ROOT>'
 
     def __init__(self, words, tags, rels):
         self.pad_index = 0

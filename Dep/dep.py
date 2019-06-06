@@ -136,6 +136,10 @@ class Dep(Base):
     def predict(self, word_list, pos_list):
         assert len(word_list) == len(pos_list)
         self.eval()
+
+        word_list = [self.vocab.ROOT] + word_list
+        pos_list = [self.vocab.ROOT] + pos_list
+
         word_idxs = self.vocab.word2id(word_list)
         pos_idxs = self.vocab.tag2id(pos_list)
 
@@ -147,6 +151,7 @@ class Dep(Base):
 
         s_arc, s_rel = self.forward(word_idxs, pos_idxs)
         s_arc, s_rel = s_arc.squeeze(0), s_rel.squeeze(0)
-        pred_arc = s_arc.argmax(dim=-1)
-        pred_rel = s_rel[torch.arange(len(s_rel)), pred_arcs].argmax(dim=-1)
-        return pred_arc.tolist(), pred_rel.tolist()
+        pred_arcs = s_arc.argmax(dim=-1)
+        pred_rels = s_rel[torch.arange(len(s_rel)), pred_arcs].argmax(dim=-1)
+        pred_rels = self.vocab.id2rel(pred_rels)
+        return pred_arcs[1:].tolist(), pred_rels[1:]
