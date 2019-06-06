@@ -2,10 +2,10 @@
 
 import os
 from datetime import datetime, timedelta
-from parser import BiaffineParser, Model
-from parser.metric import Metric
-from parser.utils import Corpus, Embedding, Vocab
-from parser.utils.data import TextDataset, batchify
+from Dep import Dep, Model
+from Dep.metric import Metric
+from Dep.utils import Corpus, Embedding, Vocab
+from Dep.utils.data import TextDataset, batchify
 
 import torch
 from torch.optim import Adam

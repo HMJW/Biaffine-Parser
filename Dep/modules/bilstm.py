@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from parser.modules.dropout import SharedDropout
+from .dropout import SharedDropout
 
 import torch
 import torch.nn as nn

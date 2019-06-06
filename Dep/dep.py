@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from parser.modules import (MLP, Biaffine, BiLSTM, IndependentDropout,
+from Dep.modules import (MLP, Biaffine, BiLSTM, IndependentDropout,
                             SharedDropout)
 
 import torch
@@ -8,10 +8,10 @@ import torch.nn as nn
 from torch.nn.utils.rnn import pack_padded_sequence, pad_packed_sequence
 
 
-class BiaffineParser(nn.Module):
+class Dep(nn.Module):
 
     def __init__(self, config, embeddings):
-        super(BiaffineParser, self).__init__()
+        super(Dep, self).__init__()
 
         self.config = config
         # the embedding layer

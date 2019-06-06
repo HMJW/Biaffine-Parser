@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 
-from parser import BiaffineParser, Model
-from parser.utils import Corpus
-from parser.utils.data import TextDataset, batchify
+from Dep import Dep, Model
+from Dep.utils import Corpus
+from Dep.utils.data import TextDataset, batchify
 
 import torch
 
