@@ -26,8 +26,8 @@ class Predict(object):
     def __call__(self, args):
         # reload parser
         dep = Dep.load(args.save_path)
-        sentence = ["我", "是", "中国人"]
-        pos_list = ["PN", "VC", "NN"]
+        sentence = ["我", "爱", "北京", "天安门"]
+        pos_list = ["PN", "VV", "NR", "NR"]
         pred = dep.predict(sentence, pos_list)
         print(pred) 
 
