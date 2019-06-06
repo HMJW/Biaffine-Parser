@@ -64,14 +64,11 @@ class Train(object):
         # set the data loaders
         train_loader = batchify(dataset=trainset,
                                 batch_size=config.batch_size,
-                                n_buckets=args.buckets,
                                 shuffle=True)
         dev_loader = batchify(dataset=devset,
-                              batch_size=config.batch_size,
-                              n_buckets=args.buckets)
+                              batch_size=config.batch_size)
         test_loader = batchify(dataset=testset,
-                               batch_size=config.batch_size,
-                               n_buckets=args.buckets)
+                               batch_size=config.batch_size)
         print(f"{'train:':6} {len(trainset):5} sentences in total, "
               f"{len(train_loader):3} batches provided")
         print(f"{'dev:':6} {len(devset):5} sentences in total, "
@@ -111,16 +108,16 @@ class Train(object):
 
             t = datetime.now() - start
             # save the model if it is the best so far
-            if dev_metric > best_metric and epoch > config.patience:
+            if dev_metric > best_metric:
                 best_e, best_metric = epoch, dev_metric
-                model.parser.save(config.model + f".{best_e}")
+                model.parser.save(args.save_path)
                 print(f"{t}s elapsed (saved)\n")
             else:
                 print(f"{t}s elapsed\n")
             total_time += t
             if epoch - best_e >= config.patience:
                 break
-        model.parser = Dep.load(config.model + f".{best_e}")
+        model.parser = Dep.load(args.model)
         loss, metric = model.evaluate(test_loader, args.punct)
 
         print(f"max score of dev is {best_metric.score:.2%} at epoch {best_e}")

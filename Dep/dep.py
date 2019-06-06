@@ -1,12 +1,15 @@
 # -*- coding: utf-8 -*-
 
-from Dep.modules import (MLP, Biaffine, BiLSTM, IndependentDropout,
-                            SharedDropout)
+import os
 
 import torch
 import torch.nn as nn
 from torch.nn.utils.rnn import pack_padded_sequence, pad_packed_sequence
-from shared import Base
+
+from .modules import (MLP, Biaffine, BiLSTM, IndependentDropout,
+                         SharedDropout)
+from shared import Base, save_config, get_config
+
 
 class Dep(Base):
 
@@ -130,5 +133,20 @@ class Dep(Base):
         torch.save(self.pretrained.weight, ext_emb_path)
         torch.save(self.state_dict(), param_path)
 
-    def predict(self):
-        pass
+    def predict(self, word_list, pos_list):
+        assert len(word_list) == len(pos_list)
+        self.eval()
+        word_idxs = self.vocab.word2id(word_list)
+        pos_idxs = self.vocab.tag2id(pos_list)
+
+        word_idxs = word_idxs.unsqueeze(0)
+        pos_idxs = pos_idxs.unsqueeze(0)
+        if torch.cuda.is_available():
+            word_idxs = word_idxs.cuda()
+            pos_idxs = pos_idxs.cuda()
+
+        s_arc, s_rel = self.forward(word_idxs, pos_idxs)
+        s_arc, s_rel = s_arc.squeeze(0), s_rel.squeeze(0)
+        pred_arc = s_arc.argmax(dim=-1)
+        pred_rel = s_rel[torch.arange(len(s_rel)), pred_arcs].argmax(dim=-1)
+        return pred_arc.tolist(), pred_rel.tolist()
