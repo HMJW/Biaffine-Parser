@@ -10,7 +10,7 @@ from Dep.utils.data import TextDataset, batchify
 import torch
 from torch.optim import Adam
 from torch.optim.lr_scheduler import ExponentialLR
-
+from shared import get_config
 
 class Train(object):
 
@@ -22,37 +22,39 @@ class Train(object):
                                help='max num of buckets to use')
         subparser.add_argument('--punct', action='store_true',
                                help='whether to include punctuation')
-        subparser.add_argument('--ftrain', default='data/ptb/train.conllx',
+        subparser.add_argument('--ftrain', default='/data/wjiang/data/CoNLL09/train.auto.conllx',
                                help='path to train file')
-        subparser.add_argument('--fdev', default='data/ptb/dev.conllx',
+        subparser.add_argument('--fdev', default='/data/wjiang/data/CoNLL09/dev.auto.conllx',
                                help='path to dev file')
-        subparser.add_argument('--ftest', default='data/ptb/test.conllx',
+        subparser.add_argument('--ftest', default='/data/wjiang/data/CoNLL09/test.auto.conllx',
                                help='path to test file')
-        subparser.add_argument('--fembed', default='data/glove.6B.100d.txt',
+        subparser.add_argument('--fembed', default='/data/wjiang/data/embedding/giga.100.txt',
                                help='path to pretrained embeddings')
-        subparser.add_argument('--unk', default='unk',
+        subparser.add_argument('--unk', default=None,
                                help='unk token in pretrained embeddings')
+        subparser.add_argument('--save_path', '-m', default='Dep/save/',
+                               help='path to model file')
 
+        subparser.add_argument('--conf', '-c', default='config.json',
+                               help='path to config file')
         return subparser
 
-    def __call__(self, config):
+    def __call__(self, args):
+        config = get_config(args.conf)
+
         print("Preprocess the data")
-        train = Corpus.load(config.ftrain)
-        dev = Corpus.load(config.fdev)
-        test = Corpus.load(config.ftest)
-        if os.path.exists(config.vocab):
-            vocab = torch.load(config.vocab)
+        train = Corpus.load(args.ftrain)
+        dev = Corpus.load(args.fdev)
+        test = Corpus.load(args.ftest)
+
+        vocab_path = os.path.join(args.save_path, "vocab.pt")
+        if os.path.exists(vocab_path):
+            vocab = torch.load(vocab_path)
         else:
             vocab = Vocab.from_corpus(corpus=train, min_freq=2)
-            vocab.read_embeddings(Embedding.load(config.fembed, config.unk))
-            torch.save(vocab, config.vocab)
-        config.update({
-            'n_words': vocab.n_train_words,
-            'n_tags': vocab.n_tags,
-            'n_rels': vocab.n_rels,
-            'pad_index': vocab.pad_index,
-            'unk_index': vocab.unk_index
-        })
+            vocab.read_embeddings(Embedding.load(args.fembed, args.unk))
+            torch.save(vocab, vocab_path)
+            
         print(vocab)
 
         print("Load the dataset")
@@ -62,14 +64,14 @@ class Train(object):
         # set the data loaders
         train_loader = batchify(dataset=trainset,
                                 batch_size=config.batch_size,
-                                n_buckets=config.buckets,
+                                n_buckets=args.buckets,
                                 shuffle=True)
         dev_loader = batchify(dataset=devset,
                               batch_size=config.batch_size,
-                              n_buckets=config.buckets)
+                              n_buckets=args.buckets)
         test_loader = batchify(dataset=testset,
                                batch_size=config.batch_size,
-                               n_buckets=config.buckets)
+                               n_buckets=args.buckets)
         print(f"{'train:':6} {len(trainset):5} sentences in total, "
               f"{len(train_loader):3} batches provided")
         print(f"{'dev:':6} {len(devset):5} sentences in total, "
@@ -78,7 +80,7 @@ class Train(object):
               f"{len(test_loader):3} batches provided")
 
         print("Create the model")
-        parser = BiaffineParser(config, vocab.embeddings)
+        parser = Dep(vocab, config, vocab.embeddings)
         if torch.cuda.is_available():
             parser = parser.cuda()
         print(f"{parser}\n")
@@ -100,11 +102,11 @@ class Train(object):
             model.train(train_loader)
 
             print(f"Epoch {epoch} / {config.epochs}:")
-            loss, train_metric = model.evaluate(train_loader, config.punct)
+            loss, train_metric = model.evaluate(train_loader, args.punct)
             print(f"{'train:':6} Loss: {loss:.4f} {train_metric}")
-            loss, dev_metric = model.evaluate(dev_loader, config.punct)
+            loss, dev_metric = model.evaluate(dev_loader, args.punct)
             print(f"{'dev:':6} Loss: {loss:.4f} {dev_metric}")
-            loss, test_metric = model.evaluate(test_loader, config.punct)
+            loss, test_metric = model.evaluate(test_loader, args.punct)
             print(f"{'test:':6} Loss: {loss:.4f} {test_metric}")
 
             t = datetime.now() - start
@@ -118,8 +120,8 @@ class Train(object):
             total_time += t
             if epoch - best_e >= config.patience:
                 break
-        model.parser = BiaffineParser.load(config.model + f".{best_e}")
-        loss, metric = model.evaluate(test_loader, config.punct)
+        model.parser = Dep.load(config.model + f".{best_e}")
+        loss, metric = model.evaluate(test_loader, args.punct)
 
         print(f"max score of dev is {best_metric.score:.2%} at epoch {best_e}")
         print(f"the score of test at epoch {best_e} is {metric.score:.2%}")

@@ -2,11 +2,10 @@
 
 import argparse
 import os
-from parser.cmds import Evaluate, Predict, Train
+from Dep.cmds import Evaluate, Predict, Train
 
 import torch
 
-from config import Config
 
 
 if __name__ == '__main__':
@@ -21,12 +20,7 @@ if __name__ == '__main__':
     }
     for name, subcommand in subcommands.items():
         subparser = subcommand.add_subparser(name, subparsers)
-        subparser.add_argument('--conf', '-c', default='config.ini',
-                               help='path to config file')
-        subparser.add_argument('--model', '-m', default='exp/ptb/model.tag',
-                               help='path to model file')
-        subparser.add_argument('--vocab', '-v', default='exp/ptb/vocab.tag',
-                               help='path to vocab file')
+
         subparser.add_argument('--device', '-d', default='-1',
                                help='ID of GPU to use')
         subparser.add_argument('--seed', '-s', default=1, type=int,
@@ -42,11 +36,6 @@ if __name__ == '__main__':
     torch.manual_seed(args.seed)
     os.environ['CUDA_VISIBLE_DEVICES'] = args.device
 
-    print(f"Override the default configs with parsed arguments")
-    config = Config(args.conf)
-    config.update(vars(args))
-    print(config)
-
     print(f"Run the subcommand in mode {args.mode}")
     cmd = subcommands[args.mode]
-    cmd(config)
+    cmd(args)

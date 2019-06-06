@@ -6,19 +6,19 @@ from Dep.modules import (MLP, Biaffine, BiLSTM, IndependentDropout,
 import torch
 import torch.nn as nn
 from torch.nn.utils.rnn import pack_padded_sequence, pad_packed_sequence
+from shared import Base
 
+class Dep(Base):
 
-class Dep(nn.Module):
-
-    def __init__(self, config, embeddings):
+    def __init__(self, vocab, config, embeddings):
         super(Dep, self).__init__()
-
         self.config = config
+        self.vocab = vocab
         # the embedding layer
         self.pretrained = nn.Embedding.from_pretrained(embeddings)
-        self.embed = nn.Embedding(num_embeddings=config.n_words,
+        self.embed = nn.Embedding(num_embeddings=vocab.n_train_words,
                                   embedding_dim=config.n_embed)
-        self.tag_embed = nn.Embedding(num_embeddings=config.n_tags,
+        self.tag_embed = nn.Embedding(num_embeddings=vocab.n_tags,
                                       embedding_dim=config.n_tag_embed)
         self.embed_dropout = IndependentDropout(p=config.embed_dropout)
 
@@ -48,11 +48,11 @@ class Dep(nn.Module):
                                  bias_x=True,
                                  bias_y=False)
         self.rel_attn = Biaffine(n_in=config.n_mlp_rel,
-                                 n_out=config.n_rels,
+                                 n_out=vocab.n_rels,
                                  bias_x=True,
                                  bias_y=True)
-        self.pad_index = config.pad_index
-        self.unk_index = config.unk_index
+        self.pad_index = vocab.pad_index
+        self.unk_index = vocab.unk_index
 
         self.reset_parameters()
 
@@ -98,22 +98,37 @@ class Dep(nn.Module):
         return s_arc, s_rel
 
     @classmethod
-    def load(cls, fname):
+    def load(cls, path):
+        vocab_path = os.path.join(path, "vocab.pt")
+        param_path = os.path.join(path, "param.pt")
+        ext_emb_path = os.path.join(path, "ext_word_emb.pt")
+        config_path = os.path.join(path, "config.json")
+
         if torch.cuda.is_available():
-            device = torch.device('cuda')
+            device = torch.device("cuda")
         else:
-            device = torch.device('cpu')
-        state = torch.load(fname, map_location=device)
-        parser = cls(state['config'], state['embeddings'])
-        parser.load_state_dict(state['state_dict'])
-        parser.to(device)
+            device = torch.device("cpu")
+        config = get_config(config_path)
 
-        return parser
+        vocab = torch.load(vocab_path)
+        ext_word_emb = torch.load(ext_emb_path, map_location=device)
+        network = cls(vocab, config, ext_word_emb)
 
-    def save(self, fname):
-        state = {
-            'config': self.config,
-            'embeddings': self.pretrained.weight,
-            'state_dict': self.state_dict()
-        }
-        torch.save(state, fname)
+        state = torch.load(param_path, map_location=device)
+        network.load_state_dict(state)
+        network.to(device)
+        return network
+
+    def save(self, path):
+        vocab_path = os.path.join(path, "vocab.pt")
+        param_path = os.path.join(path, "param.pt")
+        ext_emb_path = os.path.join(path, "ext_word_emb.pt")
+        config_path = os.path.join(path, "config.json")
+
+        torch.save(self.vocab, vocab_path)
+        save_config(self.config, config_path)
+        torch.save(self.pretrained.weight, ext_emb_path)
+        torch.save(self.state_dict(), param_path)
+
+    def predict(self):
+        pass

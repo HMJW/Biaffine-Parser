@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from Dep import BiaffineParser, Model
+from Dep import Dep, Model
 from Dep.utils import Corpus
 from Dep.utils.data import TextDataset, batchify
 

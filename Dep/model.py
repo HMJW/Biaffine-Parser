@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from parser.metric import Metric
+from Dep.metric import Metric
 
 import torch
 import torch.nn as nn
