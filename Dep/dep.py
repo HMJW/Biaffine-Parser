@@ -4,12 +4,13 @@ import os
 
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 from torch.nn.utils.rnn import pack_padded_sequence, pad_packed_sequence
 
 from .modules import (MLP, Biaffine, BiLSTM, IndependentDropout,
                          SharedDropout)
 from shared import Base, save_config, get_config
-
+from .utils import arc_argmax
 
 class Dep(Base):
 
@@ -151,7 +152,12 @@ class Dep(Base):
 
         s_arc, s_rel = self.forward(word_idxs, pos_idxs)
         s_arc, s_rel = s_arc.squeeze(0), s_rel.squeeze(0)
-        pred_arcs = s_arc.argmax(dim=-1)
+        pred_arcs = arc_argmax(s_arc.data.numpy(), len(s_arc), ensure_tree=True)
+
+        pred_probs = F.softmax(s_arc, dim=-1)
+        pred_probs = pred_probs[torch.arange(len(s_rel)), pred_arcs]
+
+        # pred_arcs = s_arc.argmax(dim=-1)
         pred_rels = s_rel[torch.arange(len(s_rel)), pred_arcs].argmax(dim=-1)
         pred_rels = self.vocab.id2rel(pred_rels)
-        return pred_arcs[1:].tolist(), pred_rels[1:]
+        return pred_arcs[1:].tolist(), pred_probs.tolist(), pred_rels[1:]
