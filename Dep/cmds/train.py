@@ -117,7 +117,7 @@ class Train(object):
             total_time += t
             if epoch - best_e >= config.patience:
                 break
-        model.parser = Dep.load(args.model)
+        model.parser = Dep.load(args.save_path)
         loss, metric = model.evaluate(test_loader, args.punct)
 
         print(f"max score of dev is {best_metric.score:.2%} at epoch {best_e}")
