@@ -41,6 +41,10 @@ if __name__ == '__main__':
     torch.set_num_threads(args.threads)
     torch.manual_seed(args.seed)
     os.environ['CUDA_VISIBLE_DEVICES'] = args.device
+    if torch.cuda.is_available():
+        args.device = 'cuda'
+    else:
+        args.device = 'cpu'
 
     print(f"Override the default configs with parsed arguments")
     config = Config(args.conf)

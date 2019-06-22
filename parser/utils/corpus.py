@@ -11,7 +11,6 @@ Sentence = namedtuple(typename='Sentence',
 
 
 class Corpus(object):
-    ROOT = '<ROOT>'
 
     def __init__(self, sentences):
         super(Corpus, self).__init__()
@@ -33,19 +32,19 @@ class Corpus(object):
 
     @property
     def words(self):
-        return [[self.ROOT] + list(sentence.FORM) for sentence in self]
+        return [list(sentence.FORM) for sentence in self]
 
     @property
     def tags(self):
-        return [[self.ROOT] + list(sentence.CPOS) for sentence in self]
+        return [list(sentence.CPOS) for sentence in self]
 
     @property
     def heads(self):
-        return [[0] + list(map(int, sentence.HEAD)) for sentence in self]
+        return [list(map(int, sentence.HEAD)) for sentence in self]
 
     @property
     def rels(self):
-        return [[self.ROOT] + list(sentence.DEPREL) for sentence in self]
+        return [list(sentence.DEPREL) for sentence in self]
 
     @heads.setter
     def heads(self, sequences):
