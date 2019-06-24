@@ -99,7 +99,7 @@ class Vocab(object):
             starts.append(torch.tensor(lengths).cumsum(0)[:-2])
         subwords = [torch.tensor(self.tokenizer.convert_tokens_to_ids(tokens))
                     for tokens in subwords]
-        mask = [torch.ones(len(tokens)).long() for tokens in subwords]
+        mask = [torch.ones(len(tokens)) for tokens in subwords]
         start_mask = [~mask[i].byte().index_fill_(0, starts[i], 0)
                       for i in range(len(mask))]
         bert = [(i, j, k) for i, j, k in zip(subwords, mask, start_mask)]
