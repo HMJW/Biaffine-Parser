@@ -26,6 +26,11 @@ class BertEmbedding(nn.Module):
             for param in self.model.parameters():
                 param.requires_grad = False
 
+        self.reset_parameters()
+
+    def reset_parameters(self):
+        nn.init.orthogonal_(self.projection.weight)
+
     def __repr__(self):
         return self.__class__.__name__ + '(' + self.extra_repr() + ')'
 
