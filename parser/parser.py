@@ -76,7 +76,7 @@ class BiaffineParser(nn.Module):
 
         # get outputs from embedding layers
         word_embed = self.pretrained(words) + self.word_embed(ext_words)
-        word_embed = word_embed[:, :seq_len] + self.bert_embed(*bert)
+        word_embed = word_embed[:, :max(lens)] + self.bert_embed(*bert)
         char_embed = self.char_lstm(chars[mask])
         char_embed = pad_sequence(torch.split(char_embed, lens.tolist()), True)
         word_embed, char_embed = self.embed_dropout(word_embed, char_embed)
@@ -87,7 +87,7 @@ class BiaffineParser(nn.Module):
         inverse_indices = indices.argsort()
         x = pack_padded_sequence(x[indices], sorted_lens, True)
         x = self.lstm(x)
-        x, _ = pad_packed_sequence(x, True)
+        x, _ = pad_packed_sequence(x, True, total_length=seq_len)
         x = self.lstm_dropout(x)[inverse_indices]
 
         # apply MLPs to the BiLSTM output states

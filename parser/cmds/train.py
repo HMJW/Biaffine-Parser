@@ -8,6 +8,7 @@ from parser.utils import Corpus, Embedding, Vocab
 from parser.utils.data import TextDataset, batchify
 
 import torch
+import torch.nn as nn
 from torch.optim import Adam
 from torch.optim.lr_scheduler import ExponentialLR
 
@@ -68,11 +69,14 @@ class Train(object):
         test_loader = batchify(dataset=testset,
                                batch_size=config.batch_size)
         print(f"{'train:':6} {len(trainset):5} sentences in total, "
-              f"{len(train_loader):3} batches provided")
+              f"{len(train_loader):3} batches provided with "
+              f"{len(trainset.buckets)} buckets")
         print(f"{'dev:':6} {len(devset):5} sentences in total, "
-              f"{len(dev_loader):3} batches provided")
+              f"{len(dev_loader):3} batches provided with "
+              f"{len(devset.buckets)} buckets")
         print(f"{'test:':6} {len(testset):5} sentences in total, "
-              f"{len(test_loader):3} batches provided")
+              f"{len(test_loader):3} batches provided with "
+              f"{len(testset.buckets)} buckets")
 
         print("Create the model")
         parser = BiaffineParser(config, vocab.embeddings).to(config.device)
