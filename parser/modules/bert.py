@@ -28,9 +28,6 @@ class BertEmbedding(nn.Module):
 
         self.reset_parameters()
 
-    def reset_parameters(self):
-        nn.init.orthogonal_(self.projection.weight)
-
     def __repr__(self):
         return self.__class__.__name__ + '(' + self.extra_repr() + ')'
 
@@ -40,6 +37,9 @@ class BertEmbedding(nn.Module):
             info += f", freeze={self.freeze}"
 
         return info
+
+    def reset_parameters(self):
+        nn.init.orthogonal_(self.projection.weight)
 
     def forward(self, subwords, mask, start_mask):
         lens = start_mask.sum(1)
