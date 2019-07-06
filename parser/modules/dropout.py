@@ -13,11 +13,11 @@ class SharedDropout(nn.Module):
         self.batch_first = batch_first
 
     def extra_repr(self):
-        info = f"p={self.p}"
+        s = f"p={self.p}"
         if self.batch_first:
-            info += f", batch_first={self.batch_first}"
+            s += f", batch_first={self.batch_first}"
 
-        return info
+        return s
 
     def forward(self, x):
         if self.training:

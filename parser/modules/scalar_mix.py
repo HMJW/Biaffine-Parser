@@ -19,11 +19,11 @@ class ScalarMix(nn.Module):
                                               for _ in range(n_layers)])
 
     def extra_repr(self):
-        info = f"n_layers={self.n_layers}"
+        s = f"n_layers={self.n_layers}"
         if self.do_layer_norm:
-            info += f", do_layer_norm={self.do_layer_norm}"
+            s += f", do_layer_norm={self.do_layer_norm}"
 
-        return info
+        return s
 
     def forward(self, tensors, mask=None):
         normed_weights = self.weights.softmax(dim=0)

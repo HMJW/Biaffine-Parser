@@ -29,14 +29,13 @@ class BertEmbedding(nn.Module):
         self.reset_parameters()
 
     def __repr__(self):
-        return self.__class__.__name__ + '(' + self.extra_repr() + ')'
-
-    def extra_repr(self):
-        info = f"n_layers={self.n_layers}, n_out={self.n_out}"
+        s = self.__class__.__name__ + '('
+        s += f"n_layers={self.n_layers}, n_out={self.n_out}"
         if self.freeze:
-            info += f", freeze={self.freeze}"
+            s += f", freeze={self.freeze}"
+        s += ')'
 
-        return info
+        return s
 
     def reset_parameters(self):
         nn.init.orthogonal_(self.projection.weight)

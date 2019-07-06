@@ -16,15 +16,15 @@ class Config(object):
                            for option, value in self.config.items(section))
 
     def __repr__(self):
-        info = f"{self.__class__.__name__}:\n"
+        s = f"{self.__class__.__name__}:\n"
         for i, (option, value) in enumerate(self.kwargs.items()):
             item = f"{option:15}{value:<25}"
             item += '\n' if len(item) > 40 or i % 2 > 0 else ''
-            info += item
+            s += item
         if i % 2 == 0:
-            info += '\n'
+            s += '\n'
 
-        return info
+        return s
 
     def __getattr__(self, attr):
         return self.kwargs.get(attr, None)

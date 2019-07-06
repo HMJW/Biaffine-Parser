@@ -32,13 +32,13 @@ class BiLSTM(nn.Module):
         return self.__class__.__name__ + '(' + self.extra_repr() + ')'
 
     def extra_repr(self):
-        info = f"{self.input_size}, {self.hidden_size}"
+        s = f"{self.input_size}, {self.hidden_size}"
         if self.num_layers > 1:
-            info += f", num_layers={self.num_layers}"
+            s += f", num_layers={self.num_layers}"
         if self.dropout > 0:
-            info += f", dropout={self.dropout}"
+            s += f", dropout={self.dropout}"
 
-        return info
+        return s
 
     def reset_parameters(self):
         for i in self.parameters():
