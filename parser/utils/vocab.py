@@ -8,18 +8,18 @@ from pytorch_pretrained_bert import BertTokenizer
 
 
 class Vocab(object):
-    PAD = '<PAD>'
-    UNK = '<UNK>'
-    BOS = '<BOS>'
-    EOS = '<EOS>'
+    pad = '<PAD>'
+    unk = '<UNK>'
+    bos = '<BOS>'
+    eos = '<EOS>'
 
     def __init__(self, bert_vocab, words, chars, rels):
         self.pad_index = 0
         self.unk_index = 1
 
-        self.words = [self.PAD, self.UNK, self.BOS] + sorted(words)
-        self.chars = [self.PAD, self.UNK, self.BOS] + sorted(chars)
-        self.rels = [self.BOS] + sorted(rels)
+        self.words = [self.pad, self.unk, self.bos] + sorted(words)
+        self.chars = [self.pad, self.unk, self.bos] + sorted(chars)
+        self.rels = [self.bos] + sorted(rels)
 
         self.word_dict = {word: i for i, word in enumerate(self.words)}
         self.char_dict = {char: i for i, char in enumerate(self.chars)}
@@ -103,12 +103,12 @@ class Vocab(object):
                       for i in range(len(mask))]
         bert = [(i, j, k) for i, j, k in zip(subwords, mask, start_mask)]
 
-        words = [self.word2id([self.BOS] + seq) for seq in corpus.words]
-        chars = [self.char2id([self.BOS] + seq) for seq in corpus.words]
+        words = [self.word2id([self.bos] + seq) for seq in corpus.words]
+        chars = [self.char2id([self.bos] + seq) for seq in corpus.words]
         if not training:
             return bert, words, chars
         arcs = [torch.tensor([0] + seq) for seq in corpus.heads]
-        rels = [self.rel2id([self.BOS] + seq) for seq in corpus.rels]
+        rels = [self.rel2id([self.bos] + seq) for seq in corpus.rels]
 
         return bert, words, chars, arcs, rels
 
