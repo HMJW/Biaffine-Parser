@@ -11,15 +11,14 @@ from torch.nn.utils.rnn import (pack_padded_sequence, pad_packed_sequence,
 
 class BiaffineParser(nn.Module):
 
-    def __init__(self, config, embeddings):
+    def __init__(self, config, embed):
         super(BiaffineParser, self).__init__()
 
         self.config = config
         # the embedding layer
         self.bert_embed = BertEmbedding(path=config.bert_path,
-                                        n_layers=config.n_bert_layers,
-                                        n_out=config.n_bert_embed)
-        self.pretrained = nn.Embedding.from_pretrained(embeddings)
+                                        n_layers=config.n_bert_layers)
+        self.pretrained = nn.Embedding.from_pretrained(embed)
         self.word_embed = nn.Embedding(num_embeddings=config.n_words,
                                        embedding_dim=config.n_embed)
         # the char-lstm layer
@@ -29,7 +28,7 @@ class BiaffineParser(nn.Module):
         self.embed_dropout = IndependentDropout(p=config.embed_dropout)
 
         # the word-lstm layer
-        self.lstm = BiLSTM(input_size=config.n_embed*2,
+        self.lstm = BiLSTM(input_size=config.n_embed*2+config.n_bert,
                            hidden_size=config.n_lstm_hidden,
                            num_layers=config.n_lstm_layers,
                            dropout=config.lstm_dropout)
@@ -76,12 +75,13 @@ class BiaffineParser(nn.Module):
 
         # get outputs from embedding layers
         word_embed = self.pretrained(words) + self.word_embed(ext_words)
-        word_embed = word_embed[:, :max(lens)] + self.bert_embed(*bert)
+        word_embed = word_embed[:, :max(lens)]
         char_embed = self.char_lstm(chars[mask])
         char_embed = pad_sequence(torch.split(char_embed, lens.tolist()), True)
-        word_embed, char_embed = self.embed_dropout(word_embed, char_embed)
+        bert_embed = self.bert_embed(*bert)
+        embeds = self.embed_dropout(word_embed, char_embed, bert_embed)
         # concatenate the word and char representations
-        x = torch.cat((word_embed, char_embed), dim=-1)
+        x = torch.cat(embeds, dim=-1)
 
         sorted_lens, indices = torch.sort(lens, descending=True)
         inverse_indices = indices.argsort()
@@ -113,7 +113,7 @@ class BiaffineParser(nn.Module):
         else:
             device = torch.device('cpu')
         state = torch.load(fname, map_location=device)
-        parser = cls(state['config'], state['embeddings'])
+        parser = cls(state['config'], state['embed'])
         parser.load_state_dict(state['state_dict'])
         parser.to(device)
 
@@ -122,7 +122,7 @@ class BiaffineParser(nn.Module):
     def save(self, fname):
         state = {
             'config': self.config,
-            'embeddings': self.pretrained.weight,
+            'embed': self.pretrained.weight,
             'state_dict': self.state_dict()
         }
         torch.save(state, fname)

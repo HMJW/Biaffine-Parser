@@ -77,7 +77,7 @@ class Train(object):
               f"{len(testset.buckets)} buckets")
 
         print("Create the model")
-        parser = BiaffineParser(config, vocab.embeddings).to(config.device)
+        parser = BiaffineParser(config, vocab.embed).to(config.device)
         if torch.cuda.device_count() > 1:
             parser = nn.DataParallel(parser)
         print(f"{parser}\n")
@@ -91,7 +91,7 @@ class Train(object):
                                (config.mu, config.nu),
                                config.epsilon)
         model.scheduler = ExponentialLR(model.optimizer,
-                                        config.decay ** (1 / config.steps))
+                                        config.decay**(1/config.decay_steps))
 
         for epoch in range(1, config.epochs + 1):
             start = datetime.now()
