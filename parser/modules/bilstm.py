@@ -28,6 +28,17 @@ class BiLSTM(nn.Module):
 
         self.reset_parameters()
 
+    def __repr__(self):
+        s = self.__class__.__name__ + '('
+        s += f"{self.input_size}, {self.hidden_size}"
+        if self.num_layers > 1:
+            s += f", num_layers={self.num_layers}"
+        if self.dropout > 0:
+            s += f", dropout={self.dropout}"
+        s += ')'
+
+        return s
+
     def reset_parameters(self):
         for i in self.parameters():
             # apply orthogonal_ to weight

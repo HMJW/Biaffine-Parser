@@ -8,9 +8,10 @@ import torch.nn as nn
 
 class Model(object):
 
-    def __init__(self, vocab, parser):
+    def __init__(self, config, vocab, parser):
         super(Model, self).__init__()
 
+        self.config = config
         self.vocab = vocab
         self.parser = parser
         self.criterion = nn.CrossEntropyLoss()
@@ -18,7 +19,7 @@ class Model(object):
     def train(self, loader):
         self.parser.train()
 
-        for words, chars, arcs, rels in loader:
+        for i, (words, chars, arcs, rels) in enumerate(loader):
             self.optimizer.zero_grad()
 
             mask = words.ne(self.vocab.pad_index)
@@ -29,10 +30,14 @@ class Model(object):
             gold_arcs, gold_rels = arcs[mask], rels[mask]
 
             loss = self.get_loss(s_arc, s_rel, gold_arcs, gold_rels)
+            loss /= self.config.update_steps
             loss.backward()
-            nn.utils.clip_grad_norm_(self.parser.parameters(), 5.0)
-            self.optimizer.step()
-            self.scheduler.step()
+            if (i + 1) % self.config.update_steps == 0:
+                nn.utils.clip_grad_norm_(self.parser.parameters(),
+                                         self.config.clip)
+                self.optimizer.step()
+                self.scheduler.step()
+                self.optimizer.zero_grad()
 
     @torch.no_grad()
     def evaluate(self, loader, punct=False):
