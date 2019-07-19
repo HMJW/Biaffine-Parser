@@ -44,17 +44,15 @@ def collate_fn(data):
 
 class TextSampler(Sampler):
 
-    def __init__(self, buckets, batch_size, shuffle=False, max_len=800):
+    def __init__(self, buckets, batch_size, shuffle=False):
         self.batch_size = batch_size
         self.shuffle = shuffle
         self.sizes, self.buckets = zip(*[
             (size, bucket) for size, bucket in buckets.items()
         ])
         # number of chunks in each bucket
-        self.chunks = [
-            max(round(size * len(bucket) / min(max_len * size, batch_size)), 1)
-            for size, bucket in zip(self.sizes, self.buckets)
-        ]
+        self.chunks = [max(round(size * len(bucket) / batch_size), 1)
+                       for size, bucket in zip(self.sizes, self.buckets)]
 
     def __iter__(self):
         # if shuffle, shffule both the buckets and samples in each bucket
