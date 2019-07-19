@@ -20,8 +20,6 @@ class Model(object):
         self.parser.train()
 
         for i, (words, chars, arcs, rels) in enumerate(loader):
-            self.optimizer.zero_grad()
-
             mask = words.ne(self.vocab.pad_index)
             # ignore the first token of each sentence
             mask[:, 0] = 0
