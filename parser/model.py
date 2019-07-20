@@ -28,7 +28,7 @@ class Model(object):
             gold_arcs, gold_rels = arcs[mask], rels[mask]
 
             loss = self.get_loss(s_arc, s_rel, gold_arcs, gold_rels)
-            loss /= self.config.update_steps
+            loss = loss / self.config.update_steps
             loss.backward()
             if (i + 1) % self.config.update_steps == 0:
                 nn.utils.clip_grad_norm_(self.parser.parameters(),

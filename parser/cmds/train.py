@@ -47,7 +47,7 @@ class Train(object):
             vocab.read_embeddings(Embedding.load(config.fembed, config.unk))
             torch.save(vocab, config.vocab)
         config.update({
-            'n_words': vocab.n_train_words,
+            'n_words': vocab.n_init,
             'n_chars': vocab.n_chars,
             'n_rels': vocab.n_rels,
             'pad_index': vocab.pad_index,
