@@ -7,8 +7,8 @@ import torch
 
 
 class Vocab(object):
-    pad = '<PAD>'
-    unk = '<UNK>'
+    pad = '<pad>'
+    unk = '<unk>'
 
     def __init__(self, words, chars, rels):
         self.pad_index = 0
@@ -60,7 +60,7 @@ class Vocab(object):
         return [self.rels[i] for i in ids]
 
     def read_embeddings(self, embed, smooth=True):
-        words = list(embed.tokens)
+        words = [word.lower() for word in embed.tokens]
         # if the `unk` token has existed in the pretrained,
         # then replace it with a self-defined one
         if embed.unk:

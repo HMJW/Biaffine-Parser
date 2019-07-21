@@ -7,7 +7,6 @@ from parser.config import Config
 
 import torch
 
-
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
         description='Create the Biaffine Parser model.'
@@ -28,6 +27,8 @@ if __name__ == '__main__':
                                help='path to vocab file')
         subparser.add_argument('--device', '-d', default='-1',
                                help='ID of GPU to use')
+        subparser.add_argument('--preprocess', '-p', action='store_true',
+                               help='whether to preprocess the data first')
         subparser.add_argument('--seed', '-s', default=1, type=int,
                                help='seed for generating random numbers')
         subparser.add_argument('--threads', '-t', default=4, type=int,

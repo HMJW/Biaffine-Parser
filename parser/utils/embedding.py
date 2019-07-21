@@ -19,6 +19,9 @@ class Embedding(object):
     def __contains__(self, token):
         return token in self.pretrained
 
+    def __getitem__(self, token):
+        return torch.tensor(self.pretrained[token])
+
     @property
     def dim(self):
         return self.vectors.size(1)

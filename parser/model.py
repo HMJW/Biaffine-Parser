@@ -19,7 +19,9 @@ class Model(object):
     def train(self, loader):
         self.parser.train()
 
-        for i, (words, chars, arcs, rels) in enumerate(loader):
+        for words, chars, arcs, rels in loader:
+            self.optimizer.zero_grad()
+
             mask = words.ne(self.vocab.pad_index)
             # ignore the first token of each sentence
             mask[:, 0] = 0
@@ -28,14 +30,11 @@ class Model(object):
             gold_arcs, gold_rels = arcs[mask], rels[mask]
 
             loss = self.get_loss(s_arc, s_rel, gold_arcs, gold_rels)
-            loss = loss / self.config.update_steps
             loss.backward()
-            if (i + 1) % self.config.update_steps == 0:
-                nn.utils.clip_grad_norm_(self.parser.parameters(),
-                                         self.config.clip)
-                self.optimizer.step()
-                self.scheduler.step()
-                self.optimizer.zero_grad()
+            nn.utils.clip_grad_norm_(self.parser.parameters(),
+                                     self.config.clip)
+            self.optimizer.step()
+            self.scheduler.step()
 
     @torch.no_grad()
     def evaluate(self, loader, punct=False):

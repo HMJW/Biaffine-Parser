@@ -15,9 +15,7 @@ class Attention(nn.Module):
         self.reset_parameters()
 
     def extra_repr(self):
-        s = f"n_in={self.n_in}"
-
-        return s
+        return f"n_in={self.n_in}"
 
     def reset_parameters(self):
         nn.init.zeros_(self.weight)
