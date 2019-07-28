@@ -20,6 +20,8 @@ class Model(object):
         self.parser.train()
 
         for i, (bert, words, chars, arcs, rels) in enumerate(loader, 1):
+            self.optimizer.zero_grad()
+
             mask = words.ne(self.vocab.pad_index)
             # ignore the first token of each sentence
             mask[:, 0] = 0
@@ -28,14 +30,11 @@ class Model(object):
             gold_arcs, gold_rels = arcs[mask], rels[mask]
 
             loss = self.get_loss(s_arc, s_rel, gold_arcs, gold_rels)
-            loss /= self.config.update_steps
             loss.backward()
-            if i % self.config.update_steps == 0 or i == len(loader):
-                nn.utils.clip_grad_norm_(self.parser.parameters(),
-                                         self.config.clip)
-                self.optimizer.step()
-                self.scheduler.step()
-                self.optimizer.zero_grad()
+            nn.utils.clip_grad_norm_(self.parser.parameters(),
+                                     self.config.clip)
+            self.optimizer.step()
+            self.scheduler.step()
 
     @torch.no_grad()
     def evaluate(self, loader, punct=False):

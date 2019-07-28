@@ -41,12 +41,12 @@ class Train(object):
         train = Corpus.load(config.ftrain)
         dev = Corpus.load(config.fdev)
         test = Corpus.load(config.ftest)
-        if os.path.exists(config.vocab):
-            vocab = torch.load(config.vocab)
-        else:
+        if config.preprocess or not os.path.exists(config.vocab):
             vocab = Vocab.from_corpus(config.bert_vocab, train, 2)
             vocab.read_embeddings(Embedding.load(config.fembed, config.unk))
             torch.save(vocab, config.vocab)
+        else:
+            vocab = torch.load(config.vocab)
         config.update({
             'n_words': vocab.n_init,
             'n_chars': vocab.n_chars,
@@ -61,9 +61,7 @@ class Train(object):
         devset = TextDataset(vocab.numericalize(dev), config.buckets)
         testset = TextDataset(vocab.numericalize(test), config.buckets)
         # set the data loaders
-        train_loader = batchify(trainset,
-                                config.batch_size//config.update_steps,
-                                True)
+        train_loader = batchify(trainset, config.batch_size, True)
         dev_loader = batchify(devset, config.batch_size)
         test_loader = batchify(testset, config.batch_size)
         print(f"{'train:':6} {len(trainset):5} sentences in total, "
@@ -78,8 +76,6 @@ class Train(object):
 
         print("Create the model")
         parser = BiaffineParser(config, vocab.embed).to(config.device)
-        if torch.cuda.device_count() > 1:
-            parser = nn.DataParallel(parser)
         print(f"{parser}\n")
 
         model = Model(config, vocab, parser)

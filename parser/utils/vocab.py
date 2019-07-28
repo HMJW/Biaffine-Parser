@@ -8,10 +8,10 @@ from pytorch_pretrained_bert import BertTokenizer
 
 
 class Vocab(object):
-    pad = '<PAD>'
-    unk = '<UNK>'
-    bos = '<BOS>'
-    eos = '<EOS>'
+    pad = '<pad>'
+    unk = '<unk>'
+    bos = '<bos>'
+    eos = '<eos>'
 
     def __init__(self, bert_vocab, words, chars, rels):
         self.pad_index = 0
@@ -61,7 +61,7 @@ class Vocab(object):
         return [self.rels[i] for i in ids]
 
     def read_embeddings(self, embed, smooth=True):
-        words = list(embed.tokens)
+        words = [word.lower() for word in embed.tokens]
         # if the `unk` token has existed in the pretrained,
         # then replace it with a self-defined one
         if embed.unk:

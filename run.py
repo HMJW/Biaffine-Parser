@@ -3,11 +3,9 @@
 import argparse
 import os
 from parser.cmds import Evaluate, Predict, Train
+from parser.config import Config
 
 import torch
-
-from config import Config
-
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
@@ -29,6 +27,8 @@ if __name__ == '__main__':
                                help='path to vocab file')
         subparser.add_argument('--device', '-d', default='-1',
                                help='ID of GPU to use')
+        subparser.add_argument('--preprocess', '-p', action='store_true',
+                               help='whether to preprocess the data first')
         subparser.add_argument('--seed', '-s', default=1, type=int,
                                help='seed for generating random numbers')
         subparser.add_argument('--threads', '-t', default=4, type=int,
@@ -41,10 +41,7 @@ if __name__ == '__main__':
     torch.set_num_threads(args.threads)
     torch.manual_seed(args.seed)
     os.environ['CUDA_VISIBLE_DEVICES'] = args.device
-    if torch.cuda.is_available():
-        args.device = 'cuda'
-    else:
-        args.device = 'cpu'
+    args.device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
     print(f"Override the default configs with parsed arguments")
     config = Config(args.conf)

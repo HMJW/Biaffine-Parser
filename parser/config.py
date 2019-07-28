@@ -6,23 +6,22 @@ from configparser import ConfigParser
 
 class Config(object):
 
-    def __init__(self, fname):
+    def __init__(self, path):
         super(Config, self).__init__()
 
         self.config = ConfigParser()
-        self.config.read(fname)
+        self.config.read(path)
         self.kwargs = dict((option, literal_eval(value))
                            for section in self.config.sections()
                            for option, value in self.config.items(section))
 
     def __repr__(self):
-        s = f"{self.__class__.__name__}:\n"
+        s = "-" * 15 + "-+-" + "-" * 25 + "\n"
+        s += f"{'Param':15} | {'Value':^25}\n"
+        s += "-" * 15 + "-+-" + "-" * 25 + "\n"
         for i, (option, value) in enumerate(self.kwargs.items()):
-            item = f"{option:15}{value:<25}"
-            item += '\n' if len(item) > 40 or i % 2 > 0 else ''
-            s += item
-        if i % 2 == 0:
-            s += '\n'
+            s += f"{option:15} | {str(value):^25}\n"
+        s += "-" * 15 + "-+-" + "-" * 25 + "\n"
 
         return s
 
