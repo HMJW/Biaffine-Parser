@@ -59,7 +59,9 @@ class Train(object):
         devset = TextDataset(vocab.numericalize(dev), config.buckets)
         testset = TextDataset(vocab.numericalize(test), config.buckets)
         # set the data loaders
-        train_loader = batchify(trainset, config.batch_size, True)
+        train_loader = batchify(trainset,
+                                config.batch_size//config.update_steps,
+                                True)
         dev_loader = batchify(devset, config.batch_size)
         test_loader = batchify(testset, config.batch_size)
         print(f"{'train:':6} {len(trainset):5} sentences in total, "
