@@ -104,13 +104,12 @@ class Vocab(object):
         bert = [(i, j, k) for i, j, k in zip(subwords, mask, start_mask)]
 
         words = [self.word2id([self.bos] + seq) for seq in corpus.words]
-        chars = [self.char2id([self.bos] + seq) for seq in corpus.words]
         if not training:
-            return bert, words, chars
+            return bert, words
         arcs = [torch.tensor([0] + seq) for seq in corpus.heads]
         rels = [self.rel2id([self.bos] + seq) for seq in corpus.rels]
 
-        return bert, words, chars, arcs, rels
+        return bert, words, arcs, rels
 
     @classmethod
     def from_corpus(cls, bert_vocab, corpus, min_freq=1):

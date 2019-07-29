@@ -19,13 +19,13 @@ class Model(object):
     def train(self, loader):
         self.parser.train()
 
-        for i, (bert, words, chars, arcs, rels) in enumerate(loader, 1):
+        for i, (bert, words, arcs, rels) in enumerate(loader, 1):
             self.optimizer.zero_grad()
 
             mask = words.ne(self.vocab.pad_index)
             # ignore the first token of each sentence
             mask[:, 0] = 0
-            s_arc, s_rel = self.parser(bert, words, chars)
+            s_arc, s_rel = self.parser(bert, words)
             s_arc, s_rel = s_arc[mask], s_rel[mask]
             gold_arcs, gold_rels = arcs[mask], rels[mask]
 
@@ -42,7 +42,7 @@ class Model(object):
 
         loss, metric = 0, Metric()
 
-        for bert, words, chars, arcs, rels in loader:
+        for bert, words, arcs, rels in loader:
             mask = words.ne(self.vocab.pad_index)
             # ignore the first token of each sentence
             mask[:, 0] = 0
@@ -50,7 +50,7 @@ class Model(object):
             if not punct:
                 puncts = words.new_tensor(self.vocab.puncts)
                 mask &= words.unsqueeze(-1).ne(puncts).all(-1)
-            s_arc, s_rel = self.parser(bert, words, chars)
+            s_arc, s_rel = self.parser(bert, words)
             s_arc, s_rel = s_arc[mask], s_rel[mask]
             gold_arcs, gold_rels = arcs[mask], rels[mask]
             pred_arcs, pred_rels = self.decode(s_arc, s_rel)
@@ -66,12 +66,12 @@ class Model(object):
         self.parser.eval()
 
         all_arcs, all_rels = [], []
-        for bert, words, chars in loader:
+        for bert, words in loader:
             mask = words.ne(self.vocab.pad_index)
             # ignore the first token of each sentence
             mask[:, 0] = 0
             lens = mask.sum(dim=1).tolist()
-            s_arc, s_rel = self.parser(bert, words, chars)
+            s_arc, s_rel = self.parser(bert, words)
             s_arc, s_rel = s_arc[mask], s_rel[mask]
             pred_arcs, pred_rels = self.decode(s_arc, s_rel)
 
