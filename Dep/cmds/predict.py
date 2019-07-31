@@ -26,9 +26,9 @@ class Predict(object):
     def __call__(self, args):
         # reload parser
         dep = Dep.load(args.save_path)
-        sentence = ["我", "爱", "北京", "天安门"]
-        pos_list = ["PN", "VV", "NR", "NR"]
-        pred = dep.predict(sentence, pos_list)
+        sentence = [["我", "是", "中国人"], ["你", "好"]]
+        pos_list = [["PN", "VC", "NN"], ["PN", "VA"]]
+        pred = dep.predict_batch(sentence, pos_list)
         print(pred) 
 
         # print("Load the model")

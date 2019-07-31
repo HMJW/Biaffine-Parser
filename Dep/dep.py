@@ -5,7 +5,7 @@ import os
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torch.nn.utils.rnn import pack_padded_sequence, pad_packed_sequence
+from torch.nn.utils.rnn import pack_padded_sequence, pad_packed_sequence, pad_sequence
 
 from .modules import (MLP, Biaffine, BiLSTM, IndependentDropout,
                          SharedDropout)
@@ -167,3 +167,43 @@ class Dep(Base):
         pred_rels = rel_argmax(rel_probs, length, root_id, ensure_tree=True)
         pred_rels = self.vocab.id2rel(pred_rels)
         return pred_arcs[1:].tolist(), pred_probs.tolist(), pred_rels[1:]
+
+    @torch.no_grad()
+    def predict_batch(self, word_list, pos_list):
+        assert len(word_list) == len(pos_list)
+        self.eval()
+
+        word_idxs = [self.vocab.word2id([self.vocab.ROOT] + word) for word in word_list]
+        pos_idxs = [self.vocab.tag2id([self.vocab.ROOT] + p) for p in pos_list]
+
+        if torch.cuda.is_available():
+            word_idxs = pad_sequence(word_idxs, True).cuda()
+            pos_idxs = pad_sequence(pos_idxs, True).cuda()
+        else:
+            word_idxs = pad_sequence(word_idxs, True)
+            pos_idxs = pad_sequence(pos_idxs, True)
+
+        s_arc, s_rel = self.forward(word_idxs, pos_idxs)
+        mask = word_idxs.ne(0)
+        lens = mask.sum(1).tolist()
+        arc_probs = F.softmax(s_arc, dim=-1)
+        rel_probs = F.softmax(s_rel, dim=-1)
+        
+        pred_arcs, pred_rels, pred_probs = [], [], []
+        root_id = self.vocab.rel_dict["ROOT"]
+        for arc, rel, length in zip(arc_probs, rel_probs, lens):
+            arc = arc[:length, :length]
+            rel = rel[:length, :length]
+
+            pred_arc = arc_argmax(arc.data.numpy(), length, ensure_tree=True)
+            pred_prob = arc[torch.arange(length), pred_arc]
+            
+            # pred_arcs = s_arc.argmax(dim=-1)
+            rel_prob = rel[torch.arange(length), pred_arc]
+            pred_rel = rel_argmax(rel_prob, length, root_id, ensure_tree=True)
+            pred_rel = self.vocab.id2rel(pred_rel)
+
+            pred_arcs.append(pred_arc[1:].tolist())
+            pred_probs.append(pred_prob.tolist())
+            pred_rels.append(pred_rel[1:])
+        return pred_arcs, pred_rels, pred_probs
