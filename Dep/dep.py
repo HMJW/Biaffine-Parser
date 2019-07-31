@@ -206,4 +206,4 @@ class Dep(Base):
             pred_arcs.append(pred_arc[1:].tolist())
             pred_probs.append(pred_prob.tolist())
             pred_rels.append(pred_rel[1:])
-        return pred_arcs, pred_rels, pred_probs
+        return pred_arcs, pred_probs, pred_rels
