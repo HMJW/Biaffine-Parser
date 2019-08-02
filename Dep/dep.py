@@ -135,7 +135,7 @@ class Dep(Base):
         torch.save(self.state_dict(), param_path)
 
     @torch.no_grad()
-    def predict(self, word_list, pos_list):
+    def predict(self, word_list, pos_list, partial_labels=None):
         assert len(word_list) == len(pos_list)
         self.eval()
 
@@ -169,7 +169,7 @@ class Dep(Base):
         return pred_arcs[1:].tolist(), pred_probs.tolist(), pred_rels[1:]
 
     @torch.no_grad()
-    def predict_batch(self, word_list, pos_list):
+    def predict_batch(self, word_list, pos_list, partial_labels=None):
         assert len(word_list) == len(pos_list)
         self.eval()
 
