@@ -20,7 +20,7 @@ class Config(object):
         s += f"{'Param':15} | {'Value':^25}\n"
         s += "-" * 15 + "-+-" + "-" * 25 + "\n"
         for i, (option, value) in enumerate(self.kwargs.items()):
-            s += f"{option:15} | {value:^25}\n"
+            s += f"{option:15} | {str(value):^25}\n"
         s += "-" * 15 + "-+-" + "-" * 25 + "\n"
 
         return s
