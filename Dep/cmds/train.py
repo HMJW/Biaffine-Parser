@@ -22,17 +22,17 @@ class Train(object):
                                help='max num of buckets to use')
         subparser.add_argument('--punct', action='store_true',
                                help='whether to include punctuation')
-        subparser.add_argument('--ftrain', default='/data/wjiang/data/CoNLL09/train.auto.conllx',
+        subparser.add_argument('--ftrain', default='/data/wjiang/data/CODT/train.conll',
                                help='path to train file')
-        subparser.add_argument('--fdev', default='/data/wjiang/data/CoNLL09/dev.auto.conllx',
+        subparser.add_argument('--fdev', default='/data/wjiang/data/CODT/dev.conll',
                                help='path to dev file')
-        subparser.add_argument('--ftest', default='/data/wjiang/data/CoNLL09/test.auto.conllx',
+        subparser.add_argument('--ftest', default='/data/wjiang/data/CODT/test.conll',
                                help='path to test file')
         subparser.add_argument('--fembed', default='/data/wjiang/data/embedding/giga.100.txt',
                                help='path to pretrained embeddings')
         subparser.add_argument('--unk', default=None,
                                help='unk token in pretrained embeddings')
-        subparser.add_argument('--save_path', '-m', default='Dep/save/',
+        subparser.add_argument('--save_path', '-m', default='exp/codt',
                                help='path to model file')
 
         subparser.add_argument('--conf', '-c', default='config.json',

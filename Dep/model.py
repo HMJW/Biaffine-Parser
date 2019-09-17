@@ -24,6 +24,8 @@ class Model(object):
             mask = words.ne(self.vocab.pad_index)
             # ignore the first token of each sentence
             mask[:, 0] = 0
+            partial_mask = arcs.ne(-1)
+            mask = mask & partial_mask
             s_arc, s_rel = self.parser(words, tags)
             s_arc, s_rel = s_arc[mask], s_rel[mask]
             gold_arcs, gold_rels = arcs[mask], rels[mask]
@@ -44,6 +46,8 @@ class Model(object):
             mask = words.ne(self.vocab.pad_index)
             # ignore the first token of each sentence
             mask[:, 0] = 0
+            partial_mask = arcs.ne(-1)
+            mask = mask & partial_mask
             # ignore all punctuation if not specified
             if not punct:
                 puncts = words.new_tensor(self.vocab.puncts)
