@@ -190,7 +190,10 @@ class Dep(Base):
         rel_probs = F.softmax(s_rel, dim=-1)
         
         pred_arcs, pred_rels, pred_probs = [], [], []
-        root_id = self.vocab.rel_dict["ROOT"]
+        if "ROOT" in self.vocab.rel_dict:
+            root_id = self.vocab.rel_dict["ROOT"]
+        else:
+            root_id = self.vocab.rel_dict["root"]
         for arc, rel, length in zip(arc_probs, rel_probs, lens):
             arc = arc[:length, :length]
             rel = rel[:length, :length]
