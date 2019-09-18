@@ -160,7 +160,10 @@ class Dep(Base):
         pred_arcs = arc_argmax(arc_probs.data.numpy(), length, ensure_tree=True)
         pred_probs = arc_probs[torch.arange(length), pred_arcs]
         
-        root_id = self.vocab.rel_dict["ROOT"]
+        if "ROOT" in self.vocab.rel_dict:
+            root_id = self.vocab.rel_dict["ROOT"]
+        else:
+            root_id = self.vocab.rel_dict["root"]
         # pred_arcs = s_arc.argmax(dim=-1)
 
         rel_probs = rel_probs[torch.arange(length), pred_arcs]
