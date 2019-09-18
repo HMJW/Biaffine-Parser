@@ -20,13 +20,10 @@ class BertEmbedding(nn.Module):
         self.hidden_size = self.model.config.hidden_size
 
         self.scalar_mix = ScalarMix(n_layers)
-        self.projection = nn.Linear(self.hidden_size, n_out, False)
 
         if freeze:
             for param in self.model.parameters():
                 param.requires_grad = False
-
-        self.reset_parameters()
 
     def __repr__(self):
         s = self.__class__.__name__ + '('
@@ -37,9 +34,6 @@ class BertEmbedding(nn.Module):
 
         return s
 
-    def reset_parameters(self):
-        nn.init.orthogonal_(self.projection.weight)
-
     def forward(self, subwords, mask, start_mask):
         if self.freeze:
             self.model.eval()
@@ -48,6 +42,4 @@ class BertEmbedding(nn.Module):
         bert = bert[-self.n_layers:]
         bert = self.scalar_mix(bert)
         bert = pad_sequence(torch.split(bert[start_mask], lens.tolist()), True)
-        bert = self.projection(bert)
-
         return bert

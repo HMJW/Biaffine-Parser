@@ -36,3 +36,6 @@ class Config(object):
 
     def update(self, kwargs):
         self.kwargs.update(kwargs)
+
+    def save(self, path):
+        self.config.write(open(path, "w"))

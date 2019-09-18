@@ -21,9 +21,11 @@ if __name__ == '__main__':
         subparser = subcommand.add_subparser(name, subparsers)
         subparser.add_argument('--conf', '-c', default='config.ini',
                                help='path to config file')
-        subparser.add_argument('--model', '-m', default='exp/ptb/model',
+        subparser.add_argument('--model', '-m', default='exp/codt-bert/model',
                                help='path to model file')
-        subparser.add_argument('--vocab', '-v', default='exp/ptb/vocab',
+        subparser.add_argument('--vocab', '-v', default='exp/codt-bert/vocab',
+                               help='path to vocab file')
+        subparser.add_argument('--config', '-sc', default='exp/codt-bert/config.ini',
                                help='path to vocab file')
         subparser.add_argument('--device', '-d', default='-1',
                                help='ID of GPU to use')
@@ -47,6 +49,7 @@ if __name__ == '__main__':
     config = Config(args.conf)
     config.update(vars(args))
     print(config)
+    config.save(args.config)
 
     print(f"Run the subcommand in mode {args.mode}")
     cmd = subcommands[args.mode]

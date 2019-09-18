@@ -20,11 +20,11 @@ class BiaffineParser(nn.Module):
                                        embedding_dim=config.n_embed)
         self.bert_embed = BertEmbedding(path=config.bert_path,
                                         n_layers=config.n_bert_layers,
-                                        n_out=config.n_embed)
+                                        n_out=config.bert_dim)
         self.embed_dropout = IndependentDropout(p=config.embed_dropout)
 
         # the word-lstm layer
-        self.lstm = BiLSTM(input_size=config.n_embed*2,
+        self.lstm = BiLSTM(input_size=config.n_embed + config.bert_dim,
                            hidden_size=config.n_lstm_hidden,
                            num_layers=config.n_lstm_layers,
                            dropout=config.lstm_dropout)
