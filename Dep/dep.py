@@ -10,7 +10,7 @@ from torch.nn.utils.rnn import pack_padded_sequence, pad_packed_sequence, pad_se
 from .modules import (MLP, Biaffine, BiLSTM, IndependentDropout,
                          SharedDropout)
 from shared import Base, save_config, get_config
-from .utils import arc_argmax, rel_argmax
+from .utils import arc_argmax, rel_argmax, Viterbi
 
 class Dep(Base):
 
@@ -201,15 +201,16 @@ class Dep(Base):
             arc = arc[:length, :length]
             rel = rel[:length, :length]
 
-            pred_arc = arc_argmax(arc.data.numpy(), length, ensure_tree=True)
+            pred_arc, pred_rel = Viterbi.decode_one_inst(arc, rel, length)
+            # pred_arc = arc_argmax(arc.data.numpy(), length, ensure_tree=True)
             pred_prob = arc[torch.arange(length), pred_arc]
             
             # pred_arcs = s_arc.argmax(dim=-1)
-            rel_prob = rel[torch.arange(length), pred_arc]
-            pred_rel = rel_argmax(rel_prob, length, root_id, ensure_tree=True)
+            # rel_prob = rel[torch.arange(length), pred_arc]
+            # pred_rel = rel_argmax(rel_prob, length, root_id, ensure_tree=True)
             pred_rel = self.vocab.id2rel(pred_rel)
 
             pred_arcs.append(pred_arc[1:].tolist())
-            pred_probs.append(pred_prob.tolist())
+            pred_probs.append(pred_prob[1:].tolist())
             pred_rels.append(pred_rel[1:])
         return pred_arcs, pred_probs, pred_rels
