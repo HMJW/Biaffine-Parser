@@ -25,7 +25,7 @@ def bep(raw, deps):
                 pos1[i] = dep[3]
                 pos2[i] = dep[4]
                 heads[i] = i + 1 + 1
-                rels[i] = "app"
+                rels[i] = "subword"
         pos1[id[-1]] = dep[3]
         pos2[id[-1]] = dep[4]
         if dep[6] == "0":
@@ -58,13 +58,13 @@ def bep(raw, deps):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="get raw sentences")
     parser.add_argument(
-        "--in_file", default="/data/wjiang/data/CODT/test.bpe.txt", help="input file"
+        "--in_file", default="/data/wjiang/data/ctb7/dev.bpe.txt", help="input file"
     )
     parser.add_argument(
-        "--train_file", default="/data/wjiang/data/CODT/test.conll", help="input file"
+        "--train_file", default="/data/wjiang/data/ctb7/dev.txt", help="input file"
     )
     parser.add_argument(
-        "--out_file", default="/data/wjiang/data/CODT/test-bpe.conll", help="output file"
+        "--out_file", default="/data/wjiang/data/ctb7/dev-bpe.txt", help="output file"
     )
 
     args = parser.parse_args()
