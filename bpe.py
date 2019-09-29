@@ -1,5 +1,6 @@
 import argparse
 
+
 def bep(raw, deps):
     words = [w[1] for w in deps]
 
@@ -29,20 +30,42 @@ def bep(raw, deps):
         pos2[id[-1]] = dep[4]
         if dep[6] == "0":
             heads[id[-1]] = 0
+        elif dep[7] == "none":
+            heads[id[-1]] = -1
         else:
             heads[id[-1]] = ids[int(dep[6]) - 1][-1] + 1
         rels[id[-1]] = dep[7]
 
     results = []
     for i in range(len(raw)):
-        results.append([str(i+1), raw[i], "_", pos1[i], pos2[i], "_", str(heads[i]), rels[i], "_", "_"])
+        results.append(
+            [
+                str(i + 1),
+                raw[i],
+                "_",
+                pos1[i],
+                pos2[i],
+                "_",
+                str(heads[i]),
+                rels[i],
+                "_",
+                "_",
+            ]
+        )
     return results
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="get raw sentences")
-    parser.add_argument("--in_file", default="/data/wjiang/data/ctb7/train.bpe.txt", help="input file")
-    parser.add_argument("--train_file", default="/data/wjiang/data/ctb7/train.txt", help="input file")
-    parser.add_argument("--out_file", default="/data/wjiang/data/ctb7/train-bpe.txt", help="output file")
+    parser.add_argument(
+        "--in_file", default="/data/wjiang/data/CODT/test.bpe.txt", help="input file"
+    )
+    parser.add_argument(
+        "--train_file", default="/data/wjiang/data/CODT/test.conll", help="input file"
+    )
+    parser.add_argument(
+        "--out_file", default="/data/wjiang/data/CODT/test-bpe.conll", help="output file"
+    )
 
     args = parser.parse_args()
 
