@@ -15,7 +15,7 @@ class Predict(object):
         )
         subparser.add_argument('--batch-size', default=5000, type=int,
                                help='batch size')
-        subparser.add_argument('--fdata', default='data/ptb/test.conllx',
+        subparser.add_argument('--fdata', default='/data/wjiang/data/NMT/ch-en-mt/debug.cn.conllx',
                                help='path to dataset')
         subparser.add_argument('--fpred', default='pred.conllx',
                                help='path to predicted result')
@@ -35,7 +35,7 @@ class Predict(object):
         loader = batchify(dataset, config.batch_size)
 
         print("Make predictions on the dataset")
-        corpus.heads, corpus.rels = model.predict(loader)
+        corpus.heads, corpus.rels, corpus.pdeprels = model.predict(loader)
 
         print(f"Save the predicted result to {config.fpred}")
         corpus.save(config.fpred)

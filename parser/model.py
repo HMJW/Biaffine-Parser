@@ -4,6 +4,7 @@ from parser.metric import Metric
 
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 
 
 class Model(object):
@@ -70,22 +71,31 @@ class Model(object):
     def predict(self, loader):
         self.parser.eval()
 
-        all_arcs, all_rels = [], []
+        all_arcs, all_rels, all_probs = [], [], []
         for bert, words in loader:
             mask = words.ne(self.vocab.pad_index)
             # ignore the first token of each sentence
             mask[:, 0] = 0
             lens = mask.sum(dim=1).tolist()
             s_arc, s_rel = self.parser(bert, words)
+            p_arc, p_rel = F.softmax(s_arc, dim=-1), F.softmax(s_rel, dim=-1)
+
             s_arc, s_rel = s_arc[mask], s_rel[mask]
+            p_arc, p_rel = p_arc[mask], p_rel[mask]
+
             pred_arcs, pred_rels = self.decode(s_arc, s_rel)
+            pred_p_arcs = p_arc[torch.arange(len(p_arc)), pred_arcs]
+            pred_p_rels = p_rel[torch.arange(len(p_rel)), pred_arcs, pred_rels]
+            pred_probs = pred_p_arcs * pred_p_rels
 
             all_arcs.extend(torch.split(pred_arcs, lens))
             all_rels.extend(torch.split(pred_rels, lens))
+            all_probs.extend(torch.split(pred_probs, lens))
         all_arcs = [seq.tolist() for seq in all_arcs]
+        all_probs = [seq.tolist() for seq in all_probs]
         all_rels = [self.vocab.id2rel(seq) for seq in all_rels]
 
-        return all_arcs, all_rels
+        return all_arcs, all_rels, all_probs
 
     def get_loss(self, s_arc, s_rel, gold_arcs, gold_rels):
         s_rel = s_rel[torch.arange(len(s_rel)), gold_arcs]

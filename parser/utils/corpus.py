@@ -62,7 +62,7 @@ class Corpus(object):
 
     @pdeprels.setter
     def pdeprels(self, sequences):
-        self.sentences = [sentence._replace(pdeprels=sequence)
+        self.sentences = [sentence._replace(PDEPREL=sequence)
                           for sentence, sequence in zip(self, sequences)]
 
     @classmethod
