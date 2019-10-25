@@ -19,6 +19,7 @@ def bep(raw, deps):
     pos2 = [None] * len(raw)
     heads = [None] * len(raw)
     rels = [None] * len(raw)
+    probs = [None] * len(raw)
     for id, dep in zip(ids, deps):
         if len(id) > 1:
             for i in id[:-1]:
@@ -26,6 +27,7 @@ def bep(raw, deps):
                 pos2[i] = dep[4]
                 heads[i] = i + 1 + 1
                 rels[i] = "subword"
+                probs[i] = "1.0"
         pos1[id[-1]] = dep[3]
         pos2[id[-1]] = dep[4]
         if dep[6] == "0":
@@ -35,6 +37,7 @@ def bep(raw, deps):
         else:
             heads[id[-1]] = ids[int(dep[6]) - 1][-1] + 1
         rels[id[-1]] = dep[7]
+        probs[id[-1]] = dep[-1]
 
     results = []
     for i in range(len(raw)):
@@ -49,7 +52,7 @@ def bep(raw, deps):
                 str(heads[i]),
                 rels[i],
                 "_",
-                "_",
+                str(probs[i])
             ]
         )
     return results
