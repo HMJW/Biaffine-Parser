@@ -37,9 +37,9 @@ def evaluate(b_sen, g_sen):
     p_arcs, g_arcs = list(map(int, p_arcs)), list(map(int, g_arcs))
     p_words, p_arcs, p_rels = reverse_bpe(sub_words, p_arcs, p_rels)
     assert list(p_words) == list(words)
-    correct_arc = sum(x==y for x,y in zip(p_arcs, g_arcs) if y != -1)
-    correct_rel = sum(x==y and a==b for x,y,a,b in zip(p_arcs, g_arcs, p_rels, g_rels) if y != -1)
-    total = sum(x != -1 for x in g_arcs)
+    correct_arc = sum(x==y for w,x,y in zip(words, p_arcs, g_arcs) if y != -1 and not is_punct(w))
+    correct_rel = sum(x==y and a==b for w,x,y,a,b in zip(words, p_arcs, g_arcs, p_rels, g_rels) if y != -1 and not is_punct(w))
+    total = sum(x != -1 for w,x in zip(words,g_arcs) if not is_punct(w))
     return total, correct_arc, correct_rel
 
 def is_punct(word):
