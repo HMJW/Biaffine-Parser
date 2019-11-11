@@ -60,10 +60,18 @@ def full2half(fin, fout, narrow=False):
 
     with open(fin, 'r') as f:
         lines = [l.strip() for l in f]
-    if narrow:
-        lines = [''.join(MAP.get(c, c) for c in l) for l in lines]
-    else:
-        lines = [tohalfwidth(l) for l in lines]
+    for i in range(len(lines)):
+        if lines[i] != "\n" and len(lines[i]) > 0:
+            splits = lines[i].strip().split()
+            if narrow:
+                half = ''.join(MAP.get(c, c) for c in splits[1])
+                splits[1] = half
+            else:
+                half = tohalfwidth(splits[1])
+                half = "".join(half.split())
+                splits[1] = half
+
+        # lines = [tohalfwidth(l) for l in lines]
     with open(fout, 'w') as f:
         for l in lines:
             f.write(l + '\n')
