@@ -21,7 +21,7 @@ if __name__ == '__main__':
         subparser = subcommand.add_subparser(name, subparsers)
         subparser.add_argument('--conf', '-c', default='config.ini',
                                help='path to config file')
-        subparser.add_argument('--file', '-f', default='exp/ptb',
+        subparser.add_argument('--file', '-f', default='exp/ptb.bert',
                                help='path to saved files')
         subparser.add_argument('--preprocess', '-p', action='store_true',
                                help='whether to preprocess the data first')
@@ -36,6 +36,8 @@ if __name__ == '__main__':
         subparser.add_argument('--feat', default='tag',
                                choices=['tag', 'char', 'bert'],
                                help='choices of additional features')
+        subparser.add_argument('--partial', action='store_true',
+                                help='whether partial annotation is included')
     args = parser.parse_args()
 
     print(f"Set the max num of threads to {args.threads}")

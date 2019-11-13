@@ -15,7 +15,7 @@ class Predict(CMD):
         )
         subparser.add_argument('--batch-size', default=5000, type=int,
                                help='batch size')
-        subparser.add_argument('--fdata', default='data/ptb/test.conllx',
+        subparser.add_argument('--fdata', default='../data/PTB/test.conllx',
                                help='path to dataset')
         subparser.add_argument('--fpred', default='pred.conllx',
                                help='path to predicted result')
@@ -39,7 +39,7 @@ class Predict(CMD):
 
         print("Make predictions on the dataset")
         start = datetime.now()
-        corpus.heads, corpus.rels = self.predict(dataset.loader)
+        corpus.heads, corpus.rels, corpus.pdeprels = self.predict(dataset.loader)
         print(f"Save the predicted result to {args.fpred}")
         corpus.save(args.fpred)
         total_time = datetime.now() - start

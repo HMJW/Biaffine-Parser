@@ -35,3 +35,6 @@ def isprojective(sequence):
 
 def numericalize(sequence):
     return [int(i) for i in sequence]
+
+def pdeprel_numericalize(sequence):
+    return [0 for i in sequence]

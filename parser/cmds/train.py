@@ -19,17 +19,17 @@ class Train(CMD):
         subparser = parser.add_parser(
             name, help='Train a model.'
         )
-        subparser.add_argument('--buckets', default=32, type=int,
+        subparser.add_argument('--buckets', default=16, type=int,
                                help='max num of buckets to use')
         subparser.add_argument('--punct', action='store_true',
                                help='whether to include punctuation')
-        subparser.add_argument('--ftrain', default='data/ptb/train.conllx',
+        subparser.add_argument('--ftrain', default='../data/PTB/train.conllx',
                                help='path to train file')
-        subparser.add_argument('--fdev', default='data/ptb/dev.conllx',
+        subparser.add_argument('--fdev', default='../data/PTB/dev.conllx',
                                help='path to dev file')
-        subparser.add_argument('--ftest', default='data/ptb/test.conllx',
+        subparser.add_argument('--ftest', default='../data/PTB/test.conllx',
                                help='path to test file')
-        subparser.add_argument('--fembed', default='data/glove.6B.100d.txt',
+        subparser.add_argument('--fembed', default='../data/embedding/glove.6B.100d.txt',
                                help='path to pretrained embeddings')
         subparser.add_argument('--unk', default='unk',
                                help='unk token in pretrained embeddings')
@@ -91,7 +91,7 @@ class Train(CMD):
 
             t = datetime.now() - start
             # save the model if it is the best so far
-            if dev_metric > best_metric and epoch > args.patience:
+            if dev_metric > best_metric:
                 best_e, best_metric = epoch, dev_metric
                 if hasattr(self.model, 'module'):
                     self.model.module.save(args.model)
