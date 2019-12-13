@@ -35,10 +35,10 @@ def kmeans(x, k):
 
 
 def collate_fn(data):
-    reprs = (pad_sequence(i, True) for i in zip(*data))
+    data = list(zip(*data))
+    reprs = (pad_sequence(d, True) if i < len(data) - 1 else torch.tensor(d, dtype=torch.long) for i, d in enumerate(data))
     if torch.cuda.is_available():
         reprs = (i.cuda() for i in reprs)
-
     return reprs
 
 

@@ -22,6 +22,13 @@ class Metric(object):
         self.correct_arcs += arc_mask.sum().item()
         self.correct_rels += rel_mask.sum().item()
 
+    def __add__(self, another):
+        metric = Metric()
+        metric.total = self.total + another.total
+        metric.correct_arcs = self.correct_arcs + another.correct_arcs
+        metric.correct_rels = self.correct_rels + another.correct_rels
+        return metric
+
     def __lt__(self, other):
         return self.score < other
 

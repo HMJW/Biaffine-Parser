@@ -19,7 +19,7 @@ class Model(object):
     def train(self, loader):
         self.parser.train()
 
-        for words, chars, arcs, rels in loader:
+        for words, chars, arcs, rels, tasks in loader:
             self.optimizer.zero_grad()
 
             mask = words.ne(self.vocab.pad_index)
@@ -27,11 +27,19 @@ class Model(object):
             mask[:, 0] = 0
             partial_mask = arcs.ne(-1)
             mask = mask & partial_mask
-            s_arc, s_rel = self.parser(words, chars)
-            s_arc, s_rel = s_arc[mask], s_rel[mask]
-            gold_arcs, gold_rels = arcs[mask], rels[mask]
+            s_arcs, s_rels = self.parser(words, chars, tasks)
 
-            loss = self.get_loss(s_arc, s_rel, gold_arcs, gold_rels)
+            loss = 0
+            for i, (s_arc, s_rel) in enumerate(zip(s_arcs, s_rels)):
+                if s_arc is None and s_rel is None:
+                    continue
+                task_mask = tasks.eq(i)
+                s_arc, s_rel = s_arc[mask[task_mask]], s_rel[mask[task_mask]]
+                if len(s_arc) > 0:
+                    gold_arc, gold_rel = arcs[task_mask][mask[task_mask]
+                                                        ], rels[task_mask][mask[task_mask]]
+                    loss += self.get_loss(s_arc, s_rel, gold_arc, gold_rel)
+
             loss.backward()
             nn.utils.clip_grad_norm_(self.parser.parameters(),
                                      self.config.clip)
@@ -44,7 +52,7 @@ class Model(object):
 
         loss, metric = 0, Metric()
 
-        for words, chars, arcs, rels in loader:
+        for words, chars, arcs, rels, tasks in loader:
             mask = words.ne(self.vocab.pad_index)
             # ignore the first token of each sentence
             mask[:, 0] = 0
@@ -54,15 +62,23 @@ class Model(object):
             if not punct:
                 puncts = words.new_tensor(self.vocab.puncts)
                 mask &= words.unsqueeze(-1).ne(puncts).all(-1)
-            s_arc, s_rel = self.parser(words, chars)
-            s_arc, s_rel = s_arc[mask], s_rel[mask]
-            gold_arcs, gold_rels = arcs[mask], rels[mask]
-            pred_arcs, pred_rels = self.decode(s_arc, s_rel)
 
-            loss += self.get_loss(s_arc, s_rel, gold_arcs, gold_rels)
-            metric(pred_arcs, pred_rels, gold_arcs, gold_rels)
+            s_arcs, s_rels = self.parser(words, chars, tasks)
+            for i, (s_arc, s_rel) in enumerate(zip(s_arcs, s_rels)):
+                if s_arc is None and s_rel is None:
+                    continue
+                task_mask = tasks.eq(i)
+                s_arc, s_rel = s_arc[mask[task_mask]], s_rel[mask[task_mask]]
+                if len(s_arc) > 0:
+                    gold_arc, gold_rel = arcs[task_mask][mask[task_mask]
+                                                        ], rels[task_mask][mask[task_mask]]
+
+                    loss += self.get_loss(s_arc, s_rel, gold_arc, gold_rel)
+                    
+                    pred_arcs, pred_rels = self.decode(s_arc, s_rel)
+                    metric(pred_arcs, pred_rels, gold_arc, gold_rel)
+
         loss /= len(loader)
-
         return loss, metric
 
     @torch.no_grad()

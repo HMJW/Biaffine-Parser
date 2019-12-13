@@ -9,6 +9,50 @@ from torch.nn.utils.rnn import (pack_padded_sequence, pad_packed_sequence,
                                 pad_sequence)
 
 
+class BiaffineScorer(nn.Module):
+
+    def __init__(self, input_dim, n_mlp_arc, n_mlp_rel, n_rels, mlp_dropout=0):
+        super(BiaffineScorer, self).__init__()
+        self.mlp_arc_h = MLP(n_in=input_dim,
+                             n_hidden=n_mlp_arc,
+                             dropout=mlp_dropout)
+        self.mlp_arc_d = MLP(n_in=input_dim,
+                             n_hidden=n_mlp_arc,
+                             dropout=mlp_dropout)
+        self.mlp_rel_h = MLP(n_in=input_dim,
+                             n_hidden=n_mlp_rel,
+                             dropout=mlp_dropout)
+        self.mlp_rel_d = MLP(n_in=input_dim,
+                             n_hidden=n_mlp_rel,
+                             dropout=mlp_dropout)
+
+        # the Biaffine layers
+        self.arc_attn = Biaffine(n_in=n_mlp_arc,
+                                 bias_x=True,
+                                 bias_y=False)
+        self.rel_attn = Biaffine(n_in=n_mlp_rel,
+                                 n_out=n_rels,
+                                 bias_x=True,
+                                 bias_y=True)
+    
+    def forward(self, x, mask):
+        # apply MLPs to the BiLSTM output states
+        arc_h = self.mlp_arc_h(x)
+        arc_d = self.mlp_arc_d(x)
+        rel_h = self.mlp_rel_h(x)
+        rel_d = self.mlp_rel_d(x)
+
+        # get arc and rel scores from the bilinear attention
+        # [batch_size, seq_len, seq_len]
+        s_arc = self.arc_attn(arc_d, arc_h)
+        # [batch_size, seq_len, seq_len, n_rels]
+        s_rel = self.rel_attn(rel_d, rel_h).permute(0, 2, 3, 1)
+        # set the scores that exceed the length of each sentence to -inf
+        s_arc.masked_fill_(~mask.unsqueeze(1), float('-inf'))
+
+        return s_arc, s_rel
+
+
 class BiaffineParser(nn.Module):
 
     def __init__(self, config, embed):
@@ -31,29 +75,17 @@ class BiaffineParser(nn.Module):
                            num_layers=config.n_lstm_layers,
                            dropout=config.lstm_dropout)
         self.lstm_dropout = SharedDropout(p=config.lstm_dropout)
+        self.task = config.task.split()
+        self.n_task = len(self.task)
 
-        # the MLP layers
-        self.mlp_arc_h = MLP(n_in=config.n_lstm_hidden*2,
-                             n_hidden=config.n_mlp_arc,
-                             dropout=config.mlp_dropout)
-        self.mlp_arc_d = MLP(n_in=config.n_lstm_hidden*2,
-                             n_hidden=config.n_mlp_arc,
-                             dropout=config.mlp_dropout)
-        self.mlp_rel_h = MLP(n_in=config.n_lstm_hidden*2,
-                             n_hidden=config.n_mlp_rel,
-                             dropout=config.mlp_dropout)
-        self.mlp_rel_d = MLP(n_in=config.n_lstm_hidden*2,
-                             n_hidden=config.n_mlp_rel,
-                             dropout=config.mlp_dropout)
+        self.scorers = nn.ModuleList([BiaffineScorer(config.n_lstm_hidden*2, 
+                                                    config.n_mlp_arc, 
+                                                    config.n_mlp_rel, 
+                                                    rel_size, 
+                                                    config.mlp_dropout) 
+                                                    for rel_size in config.n_rels])
 
-        # the Biaffine layers
-        self.arc_attn = Biaffine(n_in=config.n_mlp_arc,
-                                 bias_x=True,
-                                 bias_y=False)
-        self.rel_attn = Biaffine(n_in=config.n_mlp_rel,
-                                 n_out=config.n_rels,
-                                 bias_x=True,
-                                 bias_y=True)
+
         self.pad_index = config.pad_index
         self.unk_index = config.unk_index
 
@@ -62,7 +94,7 @@ class BiaffineParser(nn.Module):
     def reset_parameters(self):
         nn.init.zeros_(self.word_embed.weight)
 
-    def forward(self, words, chars):
+    def forward(self, words, chars, tasks):
         # get the mask and lengths of given batch
         mask = words.ne(self.pad_index)
         lens = mask.sum(dim=1)
@@ -85,21 +117,20 @@ class BiaffineParser(nn.Module):
         x, _ = pad_packed_sequence(x, True)
         x = self.lstm_dropout(x)[inverse_indices]
 
-        # apply MLPs to the BiLSTM output states
-        arc_h = self.mlp_arc_h(x)
-        arc_d = self.mlp_arc_d(x)
-        rel_h = self.mlp_rel_h(x)
-        rel_d = self.mlp_rel_d(x)
+        s_arcs, s_rels = [], []
+        for i in range(self.n_task):
+            task_mask = tasks.eq(i)
+            if task_mask.sum() == 0:
+                s_arcs.append(None)
+                s_rels.append(None)
+            else:
+                task_x = x[task_mask]
+                task_mask = mask[task_mask]
+                s_arc, s_rel = self.scorers[i](task_x, task_mask)
+                s_arcs.append(s_arc)
+                s_rels.append(s_rel)
 
-        # get arc and rel scores from the bilinear attention
-        # [batch_size, seq_len, seq_len]
-        s_arc = self.arc_attn(arc_d, arc_h)
-        # [batch_size, seq_len, seq_len, n_rels]
-        s_rel = self.rel_attn(rel_d, rel_h).permute(0, 2, 3, 1)
-        # set the scores that exceed the length of each sentence to -inf
-        s_arc.masked_fill_(~mask.unsqueeze(1), float('-inf'))
-
-        return s_arc, s_rel
+        return s_arcs, s_rels
 
     @classmethod
     def load(cls, fname):

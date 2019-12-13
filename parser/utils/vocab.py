@@ -10,17 +10,17 @@ class Vocab(object):
     pad = '<pad>'
     unk = '<unk>'
 
-    def __init__(self, words, chars, rels):
+    def __init__(self, words, chars, rels, task):
         self.pad_index = 0
         self.unk_index = 1
-
+        self.task = task
         self.words = [self.pad, self.unk] + sorted(words)
         self.chars = [self.pad, self.unk] + sorted(chars)
-        self.rels = sorted(rels)
+        self.rels = [sorted(r) for r in rels] 
 
         self.word_dict = {word: i for i, word in enumerate(self.words)}
         self.char_dict = {char: i for i, char in enumerate(self.chars)}
-        self.rel_dict = {rel: i for i, rel in enumerate(self.rels)}
+        self.rel_dict = [{rel: i for i, rel in enumerate(r)} for r in self.rels]
 
         # ids of punctuation that appear in words
         self.puncts = sorted(i for word, i in self.word_dict.items()
@@ -28,11 +28,12 @@ class Vocab(object):
 
         self.n_words = len(self.words)
         self.n_chars = len(self.chars)
-        self.n_rels = len(self.rels)
+        self.n_rels = [len(r) for r in self.rels]
         self.n_init = self.n_words
 
     def __repr__(self):
         s = f"{self.__class__.__name__}: "
+        s += f"{self.task}: "
         s += f"{self.n_words} words, "
         s += f"{self.n_chars} chars, "
         s += f"{self.n_rels} rels"
@@ -52,12 +53,12 @@ class Vocab(object):
 
         return char_ids
 
-    def rel2id(self, sequence):
-        return torch.tensor([self.rel_dict.get(rel, 0)
+    def rel2id(self, sequence, task):
+        return torch.tensor([self.rel_dict[task].get(rel, 0)
                              for rel in sequence])
 
-    def id2rel(self, ids):
-        return [self.rels[i] for i in ids]
+    def id2rel(self, ids, task):
+        return [self.rels[task][i] for i in ids]
 
     def read_embeddings(self, embed, smooth=True):
         words = [word.lower() for word in embed.tokens]
@@ -86,20 +87,23 @@ class Vocab(object):
     def numericalize(self, corpus, training=True):
         words = [self.word2id(seq) for seq in corpus.words]
         chars = [self.char2id(seq) for seq in corpus.words]
+        tasks = [task for task in corpus.tasks]
         if not training:
-            return words, chars
+            return words, chars, tasks
         arcs = [torch.tensor(seq) for seq in corpus.heads]
-        rels = [self.rel2id(seq) for seq in corpus.rels]
 
-        return words, chars, arcs, rels
+        rels = [self.rel2id(seq, task) for seq, task in zip(corpus.rels, corpus.tasks)]
+        assert len(words) == len(chars) == len(arcs) == len(rels) == len(tasks)
+        return words, chars, arcs, rels, tasks
 
     @classmethod
-    def from_corpus(cls, corpus, min_freq=1):
-        words = Counter(word.lower() for seq in corpus.words for word in seq)
+    def from_corpus(cls, corpus, min_freq=1, task=[]):
+        words = Counter(word.lower() for c in corpus for seq in c.words for word in seq)
         words = list(word for word, freq in words.items() if freq >= min_freq)
-        chars = list({char for seq in corpus.words for char in ''.join(seq)})
-        rels = list({rel for seq in corpus.rels for rel in seq})
-        vocab = cls(words, chars, rels)
+        chars = list({char for c in corpus for seq in c.words for char in ''.join(seq)})
+        assert len(task) > 0
+        rels = [list({rel for seq in c.rels for rel in seq}) for c in corpus]
+        vocab = cls(words, chars, rels, task)
 
         return vocab
 
