@@ -35,13 +35,7 @@ class Biaffine(nn.Module):
             x = torch.cat([x, x.new_ones(x.shape[:-1]).unsqueeze(-1)], -1)
         if self.bias_y:
             y = torch.cat([y, y.new_ones(y.shape[:-1]).unsqueeze(-1)], -1)
-        # [batch_size, 1, seq_len, d]
-        x = x.unsqueeze(1)
-        # [batch_size, 1, seq_len, d]
-        y = y.unsqueeze(1)
-        # [batch_size, n_out, seq_len, seq_len]
-        s = x @ self.weight @ y.transpose(-1, -2)
-        # remove dim 1 if n_out == 1
+        s = torch.einsum("bxi,oij,byj->boxy", x, self.weight, y)
         s = s.squeeze(1)
 
         return s
