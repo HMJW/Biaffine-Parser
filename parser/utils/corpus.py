@@ -43,6 +43,10 @@ class Corpus(object):
     def heads(self):
         return [[0] + list(map(int, sentence.HEAD)) for sentence in self]
 
+    @property 
+    def pdeprels(self): 
+        return [list(sentence.PDEPREL) for sentence in self]
+
     @property
     def rels(self):
         return [[self.root] + list(sentence.DEPREL) for sentence in self]
@@ -55,6 +59,11 @@ class Corpus(object):
     @rels.setter
     def rels(self, sequences):
         self.sentences = [sentence._replace(DEPREL=sequence)
+                          for sentence, sequence in zip(self, sequences)]
+
+    @pdeprels.setter 
+    def pdeprels(self, sequences): 
+        self.sentences = [sentence._replace(PDEPREL=sequence) 
                           for sentence, sequence in zip(self, sequences)]
 
     @classmethod
