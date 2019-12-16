@@ -85,13 +85,12 @@ class Vocab(object):
 
     def numericalize(self, corpus, training=True):
         words = [self.word2id(seq) for seq in corpus.words]
-        chars = [self.char2id(seq) for seq in corpus.words]
         if not training:
-            return words, chars
+            return words
         arcs = [torch.tensor(seq) for seq in corpus.heads]
         rels = [self.rel2id(seq) for seq in corpus.rels]
 
-        return words, chars, arcs, rels
+        return words, arcs, rels
 
     @classmethod
     def from_corpus(cls, corpus, min_freq=1):
