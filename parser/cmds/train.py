@@ -22,11 +22,11 @@ class Train(object):
                                help='max num of buckets to use')
         subparser.add_argument('--punct', action='store_true',
                                help='whether to include punctuation')
-        subparser.add_argument('--ftrain', default='../data/treebanks/ctb9/train.conll',
+        subparser.add_argument('--ftrain', default='../data/treebanks/ctb9/train.bpe.conll',
                                help='path to train file')
-        subparser.add_argument('--fdev', default='../data/treebanks/ctb9/dev.conll',
+        subparser.add_argument('--fdev', default='../data/treebanks/ctb9/dev.bpe.conll',
                                help='path to dev file')
-        subparser.add_argument('--ftest', default='../data/treebanks/ctb9/test.conll',
+        subparser.add_argument('--ftest', default='../data/treebanks/ctb9/test.bpe.conll',
                                help='path to test file')
         subparser.add_argument('--fembed', default='../data/embedding/giga.100.txt',
                                help='path to pretrained embeddings')

@@ -22,7 +22,7 @@ class BiaffineParser(nn.Module):
         self.embed_dropout = IndependentDropout(p=config.embed_dropout)
 
         # the word-lstm layer
-        self.lstm = BiLSTM(input_size=config.n_embed*2,
+        self.lstm = BiLSTM(input_size=config.n_embed,
                            hidden_size=config.n_lstm_hidden,
                            num_layers=config.n_lstm_layers,
                            dropout=config.lstm_dropout)
@@ -70,7 +70,7 @@ class BiaffineParser(nn.Module):
         word_embed = self.pretrained(words) + self.word_embed(ext_words)
         word_embed = self.embed_dropout(word_embed)
         # concatenate the word and char representations
-        x = word_embed
+        x = word_embed[0]
 
         sorted_lens, indices = torch.sort(lens, descending=True)
         inverse_indices = indices.argsort()
