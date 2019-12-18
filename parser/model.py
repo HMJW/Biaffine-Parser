@@ -14,7 +14,7 @@ class Model(object):
         self.config = config
         self.vocab = vocab
         self.parser = parser
-        self.criterion = nn.CrossEntropyLoss()
+        self.criterion = nn.CrossEntropyLoss(reduction="sum")
 
     def train(self, loader):
         self.parser.train()
@@ -30,6 +30,7 @@ class Model(object):
             s_arcs, s_rels = self.parser(words, chars, tasks)
 
             loss = 0
+            word_num = mask.sum().float()
             for i, (s_arc, s_rel) in enumerate(zip(s_arcs, s_rels)):
                 if s_arc is None and s_rel is None:
                     continue
@@ -39,7 +40,7 @@ class Model(object):
                     gold_arc, gold_rel = arcs[task_mask][mask[task_mask]
                                                         ], rels[task_mask][mask[task_mask]]
                     loss += self.get_loss(s_arc, s_rel, gold_arc, gold_rel)
-
+            loss = loss / word_num
             loss.backward()
             nn.utils.clip_grad_norm_(self.parser.parameters(),
                                      self.config.clip)
