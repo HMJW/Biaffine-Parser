@@ -4,7 +4,7 @@ from parser.metric import Metric
 from parser.utils.alg import crf, eisner
 import torch
 import torch.nn as nn
-
+from torch.nn.utils.rnn import pad_sequence
 
 class Model(object):
 
@@ -18,46 +18,76 @@ class Model(object):
 
     def train(self, loader):
         self.parser.train()
-
-        for words, chars, arcs, rels, tasks in loader:
+        max_batch = max(len(l) for l in loader)
+        loaders = [iter(l) for l in loader]
+        
+        for _ in range(max_batch):
             self.optimizer.zero_grad()
 
-            mask = words.ne(self.vocab.pad_index)
-            # ignore the first token of each sentence
-            mask[:, 0] = 0
-            s_arcs, s_rels = self.parser(words, chars, tasks)
+            for i in range(len(loaders)):
+                try:
+                    words, chars, arcs, rels, tasks = next(loaders[i])
+                except StopIteration as s:
+                    loaders[i] = iter(loader[i])
+                    words, chars, arcs, rels, tasks = next(loaders[i])
 
-            batch_loss = 0
-            batch_size, word_num = mask.sum().float(), mask.size(0)
+                mask = words.ne(self.vocab.pad_index)
+                mask[:, 0] = 0
+                s_arcs, s_rels = self.parser(words, chars, tasks)
+                for i, (s_arc, s_rel) in enumerate(zip(s_arcs, s_rels)):
+                    if s_arc is None or s_rel is None:
+                        continue
+                    task_mask = tasks.eq(i)
+                    current_mask = mask[task_mask]
+                    gold_arcs, gold_rels = arcs[task_mask], rels[task_mask]
+                    arc_loss, _ = self.get_arc_loss(s_arc, gold_arcs, mask)
+                    rel_loss = self.get_rel_loss(s_rel, gold_arcs, gold_rels, current_mask)
+                    loss = (arc_loss + rel_loss) / current_mask.sum()
+                    loss.backward()
+                nn.utils.clip_grad_norm_(self.parser.parameters(),
+                            self.config.clip)
+                self.optimizer.step()
+                self.scheduler.step()
 
-            batch_gold_arcs, batch_s_arcs, batch_mask = [], [], []
-            for i, (s_arc, s_rel) in enumerate(zip(s_arcs, s_rels)):
-                if s_arc is None or s_rel is None:
-                    continue
-                task_mask = tasks.eq(i)
-                current_mask = mask[task_mask]
-                gold_arcs, gold_rels = arcs[task_mask], rels[task_mask]
+        # for words, chars, arcs, rels, tasks in loader:
+        #     self.optimizer.zero_grad()
 
-                batch_gold_arcs.append(gold_arcs)
-                batch_mask.append(current_mask)
-                batch_s_arcs.append(s_arc)
-                rel_loss = self.get_rel_loss(s_rel, gold_arcs, gold_rels, current_mask)
-                batch_loss = batch_loss + rel_loss
+        #     mask = words.ne(self.vocab.pad_index)
+        #     # ignore the first token of each sentence
+        #     mask[:, 0] = 0
+        #     s_arcs, s_rels = self.parser(words, chars, tasks)
 
-            batch_gold_arcs = torch.cat(batch_gold_arcs, dim=0)
-            batch_s_arcs = torch.cat(batch_s_arcs, dim=0)
-            batch_mask = torch.cat(batch_mask, dim=0)
-            if self.config.crf:
-                batch_arc_loss, _ = self.get_arc_loss(batch_s_arcs, batch_gold_arcs, batch_mask)
-            else:
-                batch_arc_loss = self.get_arc_loss(batch_s_arcs, batch_gold_arcs, batch_mask)
+        #     batch_loss = 0
+        #     batch_size, word_num = mask.sum().float(), mask.size(0)
 
-            batch_loss = batch_loss / word_num + batch_arc_loss / batch_size
-            batch_loss.backward()
-            nn.utils.clip_grad_norm_(self.parser.parameters(),
-                                     self.config.clip)
-            self.optimizer.step()
-            self.scheduler.step()
+        #     batch_gold_arcs, batch_s_arcs, batch_mask = [], [], []
+        #     for i, (s_arc, s_rel) in enumerate(zip(s_arcs, s_rels)):
+        #         if s_arc is None or s_rel is None:
+        #             continue
+        #         task_mask = tasks.eq(i)
+        #         current_mask = mask[task_mask]
+        #         gold_arcs, gold_rels = arcs[task_mask], rels[task_mask]
+
+        #         batch_gold_arcs.append(gold_arcs)
+        #         batch_mask.append(current_mask)
+        #         batch_s_arcs.append(s_arc)
+        #         rel_loss = self.get_rel_loss(s_rel, gold_arcs, gold_rels, current_mask)
+        #         batch_loss = batch_loss + rel_loss
+
+        #     batch_gold_arcs = torch.cat(batch_gold_arcs, dim=0)
+        #     batch_s_arcs = torch.cat(batch_s_arcs, dim=0)
+        #     batch_mask = torch.cat(batch_mask, dim=0)
+        #     if self.config.crf:
+        #         batch_arc_loss, _ = self.get_arc_loss(batch_s_arcs, batch_gold_arcs, batch_mask)
+        #     else:
+        #         batch_arc_loss = self.get_arc_loss(batch_s_arcs, batch_gold_arcs, batch_mask)
+
+        #     batch_loss = batch_loss / word_num + batch_arc_loss / batch_size
+        #     batch_loss.backward()
+        #     nn.utils.clip_grad_norm_(self.parser.parameters(),
+        #                              self.config.clip)
+        #     self.optimizer.step()
+        #     self.scheduler.step()
 
 
     @torch.no_grad()
@@ -85,13 +115,10 @@ class Model(object):
                 gold_arcs, gold_rels = arcs[task_mask], rels[task_mask]
 
                 if len(s_arc) > 0:
-                    if not self.config.crf:
-                        loss = self.get_loss(s_arc, s_rel, gold_arcs, gold_rels, current_mask)
-                    else:
-                        loss, s_arc_marg = self.get_loss(s_arc, s_rel, gold_arcs, gold_rels, current_mask)
+                    loss, s_arc = self.get_loss(s_arc, s_rel, gold_arcs, gold_rels, current_mask)
                     total_loss += loss
                     if self.config.marg:
-                        pred_arcs, pred_rels = self.decode(s_arc_marg, s_rel, current_mask)
+                        pred_arcs, pred_rels = self.decode(s_arc, s_rel, current_mask)
                     else:
                         pred_arcs, pred_rels = self.decode(s_arc.softmax(-1), s_rel, current_mask)
 
@@ -136,7 +163,7 @@ class Model(object):
             gold_arcs = gold_arcs[mask]
 
             arc_loss = self.criterion(s_arc, gold_arcs)
-            return arc_loss
+            return arc_loss, s_arc
         else:
             arc_loss, arc_probs = crf(s_arc, mask, gold_arcs,
                                     self.config.partial)
@@ -154,13 +181,13 @@ class Model(object):
     def get_loss(self, s_arc, s_rel, gold_arcs, gold_rels, mask):
         if not self.config.crf:
             mask = mask & gold_arcs.ge(0)
-            s_arc, s_rel = s_arc[mask], s_rel[mask]
+            s_arcs, s_rels = s_arc[mask], s_rel[mask]
             gold_arcs, gold_rels = gold_arcs[mask], gold_rels[mask]
-            s_rel = s_rel[torch.arange(len(s_rel)), gold_arcs]
+            s_rels = s_rels[torch.arange(len(s_rels)), gold_arcs]
 
-            arc_loss = self.criterion(s_arc, gold_arcs)
-            rel_loss = self.criterion(s_rel, gold_rels)
-            return arc_loss + rel_loss
+            arc_loss = self.criterion(s_arcs, gold_arcs)
+            rel_loss = self.criterion(s_rels, gold_rels)
+            return arc_loss + rel_loss, s_arc
         else:
             arc_loss, arc_probs = crf(s_arc, mask, gold_arcs,
                                     self.config.partial)
