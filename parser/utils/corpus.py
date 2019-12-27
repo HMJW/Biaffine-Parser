@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from collections import namedtuple
-
+from parser.utils.fn import isprojective
 
 Sentence = namedtuple(typename='Sentence',
                       field_names=['ID', 'FORM', 'LEMMA', 'CPOS',
@@ -71,6 +71,8 @@ class Corpus(object):
                 sentence = Sentence(*zip(*[l.split() for l in lines[start:i]]), task)
                 sentences.append(sentence)
                 start = i + 1
+        sentences = [sentence for sentence in sentences
+                    if isprojective(list(map(int, sentence.HEAD)))]
         corpus = cls(sentences, task)
 
         return corpus
