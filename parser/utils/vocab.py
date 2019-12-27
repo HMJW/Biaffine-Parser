@@ -92,7 +92,7 @@ class Vocab(object):
         subwords, masks, lens = [], [], []
         for sequence in corpus.words:
             sequence = [self.bert_tokenizer.encode(token.lower()) for token in sequence[1:]]
-            sequence = [piece if piece else self.bert_tokenizer.pad_token_id
+            sequence = [piece if piece else [self.bert_tokenizer.pad_token_id]
                         for piece in sequence]
             sequence = [[self.bert_tokenizer.cls_token_id]] + sequence
             seq = sum(sequence, [])
