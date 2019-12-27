@@ -80,7 +80,7 @@ class Train(object):
         print_corpus(tests, ftest)
 
         if config.preprocess or not os.path.exists(config.vocab):
-            vocab = Vocab.from_corpus(corpus=trains, min_freq=2, task=task)
+            vocab = Vocab.from_corpus(corpus=trains, min_freq=2, task=task, bert_vocab=config.bert_model)
             vocab.read_embeddings(Embedding.load(config.fembed, config.unk))
             torch.save(vocab, config.vocab)
         else:

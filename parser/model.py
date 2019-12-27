@@ -26,14 +26,13 @@ class Model(object):
 
             for i in range(len(loaders)):
                 try:
-                    words, chars, arcs, rels, tasks = next(loaders[i])
+                    words, chars, subwords, bert_masks, lens, tasks, arcs, rels = next(loaders[i])
                 except StopIteration as s:
                     loaders[i] = iter(loader[i])
-                    words, chars, arcs, rels, tasks = next(loaders[i])
-
+                    words, chars, subwords, bert_masks, lens, tasks ,arcs, rels = next(loaders[i])
                 mask = words.ne(self.vocab.pad_index)
                 mask[:, 0] = 0
-                s_arcs, s_rels = self.parser(words, chars, tasks)
+                s_arcs, s_rels = self.parser(words, chars, subwords, bert_masks, lens, tasks)
                 for i, (s_arc, s_rel) in enumerate(zip(s_arcs, s_rels)):
                     if s_arc is None or s_rel is None:
                         continue
@@ -97,7 +96,7 @@ class Model(object):
         total_loss, metric = 0, Metric()
         word_num = 0
         
-        for words, chars, arcs, rels, tasks in loader:
+        for words, chars, subwords, bert_masks, lens, tasks, arcs, rels in loader:
             puncts = words.new_tensor(self.vocab.puncts)
             puncts_mask = words.unsqueeze(-1).ne(puncts).all(-1)
             
@@ -105,7 +104,7 @@ class Model(object):
             # ignore the first token of each sentence
             mask[:, 0] = 0
             word_num += mask.sum()
-            s_arcs, s_rels = self.parser(words, chars, tasks)
+            s_arcs, s_rels = self.parser(words, chars, subwords, bert_masks, lens, tasks)
             for i, (s_arc, s_rel) in enumerate(zip(s_arcs, s_rels)):
                 if s_arc is None and s_rel is None:
                     continue
@@ -137,12 +136,12 @@ class Model(object):
         self.parser.eval()
 
         all_arcs, all_rels = [], []
-        for words, chars, tasks in loader:
+        for words, chars, subwords, bert_masks, lens, tasks in loader:
             mask = words.ne(self.vocab.pad_index)
             # ignore the first token of each sentence
             mask[:, 0] = 0
             lens = mask.sum(dim=1).tolist()
-            s_arcs, s_rels = self.parser(words, chars, tasks)
+            s_arcs, s_rels = self.parser(words, chars, subwords, bert_masks, lens, tasks)
             s_arc, s_rel = s_arcs[tasks[0]], s_rels[tasks[0]]
 
             if self.config.marg:

@@ -36,7 +36,7 @@ def kmeans(x, k):
 
 def collate_fn(data):
     data = list(zip(*data))
-    reprs = (pad_sequence(d, True) if i < len(data) - 1 else torch.tensor(d, dtype=torch.long) for i, d in enumerate(data))
+    reprs = (pad_sequence(d, True) if hasattr(d[0], "shape") else torch.tensor(d, dtype=torch.long) for d in data)
     if torch.cuda.is_available():
         reprs = (i.cuda() for i in reprs)
     return reprs

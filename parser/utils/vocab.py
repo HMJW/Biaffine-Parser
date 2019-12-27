@@ -2,7 +2,7 @@
 
 import unicodedata
 from collections import Counter
-
+from transformers import BertTokenizer
 import torch
 
 
@@ -10,13 +10,14 @@ class Vocab(object):
     pad = '<pad>'
     unk = '<unk>'
 
-    def __init__(self, words, chars, rels, task):
+    def __init__(self, words, chars, rels, task, bert_vocab):
         self.pad_index = 0
         self.unk_index = 1
         self.task = task
         self.words = [self.pad, self.unk] + sorted(words)
         self.chars = [self.pad, self.unk] + sorted(chars)
         self.rels = [sorted(r) for r in rels] 
+        self.bert_tokenizer = BertTokenizer.from_pretrained(bert_vocab)
 
         self.word_dict = {word: i for i, word in enumerate(self.words)}
         self.char_dict = {char: i for i, char in enumerate(self.chars)}
@@ -88,22 +89,33 @@ class Vocab(object):
         words = [self.word2id(seq) for seq in corpus.words]
         chars = [self.char2id(seq) for seq in corpus.words]
         tasks = [task for task in corpus.tasks]
+        subwords, masks, lens = [], [], []
+        for sequence in corpus.words:
+            sequence = [self.bert_tokenizer.encode(token.lower()) for token in sequence[1:]]
+            sequence = [piece if piece else self.bert_tokenizer.pad_token_id
+                        for piece in sequence]
+            sequence = [[self.bert_tokenizer.cls_token_id]] + sequence
+            seq = sum(sequence, [])
+            subwords.append(torch.tensor(seq))
+            lens.append(torch.tensor([len(piece) for piece in sequence]))
+            masks.append(torch.ones(len(seq)).gt(0))
+
         if not training:
-            return words, chars, tasks
+            return words, chars, subwords, masks, lens, tasks, 
         arcs = [torch.tensor(seq) for seq in corpus.heads]
 
         rels = [self.rel2id(seq, task) for seq, task in zip(corpus.rels, corpus.tasks)]
         assert len(words) == len(chars) == len(arcs) == len(rels) == len(tasks)
-        return words, chars, arcs, rels, tasks
+        return words, chars, subwords, masks, lens, tasks, arcs, rels
 
     @classmethod
-    def from_corpus(cls, corpus, min_freq=1, task=[]):
+    def from_corpus(cls, corpus, min_freq=1, task=[], bert_vocab=None):
         words = Counter(word.lower() for c in corpus for seq in c.words for word in seq)
         words = list(word for word, freq in words.items() if freq >= min_freq)
         chars = list({char for c in corpus for seq in c.words for char in ''.join(seq)})
         assert len(task) > 0
         rels = [list({rel for seq in c.rels for rel in seq}) for c in corpus]
-        vocab = cls(words, chars, rels, task)
+        vocab = cls(words, chars, rels, task, bert_vocab)
 
         return vocab
 

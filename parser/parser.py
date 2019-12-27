@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from parser.modules import (CHAR_LSTM, MLP, Biaffine, BiLSTM,
-                            IndependentDropout, SharedDropout)
+                            IndependentDropout, SharedDropout, BertEmbedding)
 
 import torch
 import torch.nn as nn
@@ -67,10 +67,11 @@ class BiaffineParser(nn.Module):
         self.char_lstm = CHAR_LSTM(n_chars=config.n_chars,
                                    n_embed=config.n_char_embed,
                                    n_out=config.n_embed)
+        self.bert = BertEmbedding(config.bert_model, config.bert_layer)
         self.embed_dropout = IndependentDropout(p=config.embed_dropout)
 
         # the word-lstm layer
-        self.lstm = BiLSTM(input_size=config.n_embed*2,
+        self.lstm = BiLSTM(input_size=config.n_embed*2 + self.bert.hidden_size,
                            hidden_size=config.n_lstm_hidden,
                            num_layers=config.n_lstm_layers,
                            dropout=config.lstm_dropout)
@@ -94,7 +95,7 @@ class BiaffineParser(nn.Module):
     def reset_parameters(self):
         nn.init.zeros_(self.word_embed.weight)
 
-    def forward(self, words, chars, tasks):
+    def forward(self, words, chars, subwords, sub_masks, sub_lens, tasks):
         # get the mask and lengths of given batch
         mask = words.ne(self.pad_index)
         lens = mask.sum(dim=1)
@@ -106,9 +107,10 @@ class BiaffineParser(nn.Module):
         word_embed = self.pretrained(words) + self.word_embed(ext_words)
         char_embed = self.char_lstm(chars[mask])
         char_embed = pad_sequence(torch.split(char_embed, lens.tolist()), True)
-        word_embed, char_embed = self.embed_dropout(word_embed, char_embed)
+        bert_embed = self.bert(subwords, sub_lens, sub_masks)
+        word_embed, char_embed, bert_embed = self.embed_dropout(word_embed, char_embed, bert_embed)
         # concatenate the word and char representations
-        x = torch.cat((word_embed, char_embed), dim=-1)
+        x = torch.cat((word_embed, char_embed, bert_embed), dim=-1)
 
         sorted_lens, indices = torch.sort(lens, descending=True)
         inverse_indices = indices.argsort()
