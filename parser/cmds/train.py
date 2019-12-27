@@ -42,11 +42,11 @@ class Train(object):
                                help='max num of buckets to use')
         subparser.add_argument('--punct', action='store_true',
                                help='whether to include punctuation')
-        subparser.add_argument('--ftrain', default='../data/treebanks/codt/train.conll ../data/treebanks/ctb9/train.conll ../data/treebanks/hit/train.conll ../data/treebanks/pmt/train.conll',
+        subparser.add_argument('--ftrain', default='../data/treebanks-filtered/codt/train.conll ../data/treebanks-filtered/ctb9/train.conll ../data/treebanks-filtered/hit/train.conll ../data/treebanks-filtered/pmt/train.conll',
                                help='path to train file')
-        subparser.add_argument('--fdev', default='../data/treebanks/codt/dev.conll ../data/treebanks/ctb9/dev.conll ../data/treebanks/hit/dev.conll ../data/treebanks/pmt/dev.conll',
+        subparser.add_argument('--fdev', default='../data/treebanks-filtered/codt/dev.conll ../data/treebanks-filtered/ctb9/dev.conll ../data/treebanks-filtered/hit/dev.conll ../data/treebanks-filtered/pmt/dev.conll',
                                help='path to dev file')
-        subparser.add_argument('--ftest', default='../data/treebanks/codt/test.conll ../data/treebanks/ctb9/test.conll ../data/treebanks/hit/test.conll ../data/treebanks/pmt/test.conll',
+        subparser.add_argument('--ftest', default='../data/treebanks-filtered/codt/test.conll ../data/treebanks-filtered/ctb9/test.conll ../data/treebanks-filtered/hit/test.conll ../data/treebanks-filtered/pmt/test.conll' ,
                                help='path to test file')
         subparser.add_argument('--fembed', default='../data/embedding/giga.100.txt',
                                help='path to pretrained embeddings')
@@ -54,6 +54,14 @@ class Train(object):
                                help='unk token in pretrained embeddings')
         subparser.add_argument('--task', default="codt ctb9 hit pmt",
                                help='all treebanks')
+        subparser.add_argument('--tree', action='store_true',
+                               help='whether to force tree')
+        subparser.add_argument('--marg', action='store_true',
+                               help='whether to use margin prob')
+        subparser.add_argument('--crf', action='store_true',
+                               help='whether to use crf loss')
+        subparser.add_argument('--partial', action='store_true',
+                               help='whether to partial')
         return subparser
 
     def __call__(self, config):
@@ -123,13 +131,13 @@ class Train(object):
             model.train(train_loader)
 
             print(f"Epoch {epoch} / {config.epochs}:")
-            loss, train_metric = model.evaluate(train_loader, config.punct)
-            print(f"{'train:':6} Loss: {loss:.4f} {train_metric}")
+            # loss, train_metric = model.evaluate(train_loader, config.punct)
+            # print(f"{'train:':6} Loss: {loss:.4f} {train_metric}")
 
             print(f"{'dev:':6}")
             dev_metric = evaluate(model, dev_loaders, task, config.punct)
             print(f"{'test:':6}")
-            evaluate(model, test_loaders, task, config.punct)
+            # evaluate(model, test_loaders, task, config.punct)
 
             t = datetime.now() - start
             # save the model if it is the best so far
