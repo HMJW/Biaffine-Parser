@@ -94,16 +94,17 @@ class Train(object):
         })
 
         print("Load the dataset")
-        trainsets = [TextDataset(vocab.numericalize(train), config.buckets) for train in trains]
+        trainset = TextDataset(vocab.numericalize(
+            sum(trains, Corpus([]))), config.buckets)
         devsets = [TextDataset(vocab.numericalize(dev), config.buckets) for dev in devs]
         testsets = [TextDataset(vocab.numericalize(test), config.buckets) for test in tests]
 
         # set the data loaders
-        train_loaders = [batchify(trainset, config.batch_size, True) for trainset in trainsets]
+        train_loader = batchify(trainset, config.batch_size, True)
         dev_loaders = [batchify(devset, config.batch_size) for devset in devsets]
         test_loaders = [batchify(testset, config.batch_size) for testset in testsets]
-        print(f"{'train:':6} {sum(len(trainset) for trainset in trainsets):5} sentences in total, "
-              f"{sum(len(train_loader) for train_loader in train_loaders):3} batches provided")
+        print(f"{'train:':6} {len(trainset):5} sentences in total, "
+              f"{len(train_loader):3} batches provided")
         print(f"{'dev:':6} {sum(len(devset) for devset in devsets):5} sentences in total, "
               f"{sum(len(dev_loader) for dev_loader in dev_loaders):3} batches provided")
         print(f"{'test:':6} {sum(len(testset) for testset in testsets):5} sentences in total, "
@@ -127,7 +128,7 @@ class Train(object):
         for epoch in range(1, config.epochs + 1):
             start = datetime.now()
             # train one epoch and update the parameters
-            model.train(train_loaders)
+            model.train(train_loader)
 
             print(f"Epoch {epoch} / {config.epochs}:")
             # loss, train_metric = model.evaluate(train_loader, config.punct)
