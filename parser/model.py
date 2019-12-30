@@ -132,25 +132,31 @@ class Model(object):
     def predict(self, loader):
         self.parser.eval()
 
-        all_arcs, all_rels = [], []
-        for words, chars, subwords, bert_masks, lens, tasks in loader:
+        all_arcs, all_rels, all_probs = [], [], []
+        for words, chars, subwords, bert_masks, sub_lens, tasks in loader:
             mask = words.ne(self.vocab.pad_index)
             # ignore the first token of each sentence
             mask[:, 0] = 0
             lens = mask.sum(dim=1).tolist()
-            s_arcs, s_rels = self.parser(words, chars, subwords, bert_masks, lens, tasks)
+            s_arcs, s_rels = self.parser(words, chars, subwords, bert_masks, sub_lens, tasks)
             s_arc, s_rel = s_arcs[tasks[0]], s_rels[tasks[0]]
-
             if self.config.marg:
                 s_arc = crf(s_arc, mask)
+            else:
+                s_arc = s_arc.softmax(dim=-1)
             pred_arcs, pred_rels = self.decode(s_arc, s_rel, mask)
-
             all_arcs.extend(torch.split(pred_arcs[mask], lens))
             all_rels.extend(torch.split(pred_rels[mask], lens))
+
+            arc_probs = s_arc.gather(-1, pred_arcs.unsqueeze(-1))
+            rel_probs = s_rel.softmax(dim=-1).max(dim=-1)[0].gather(-1, pred_arcs.unsqueeze(-1))
+            probs = arc_probs * rel_probs
+            all_probs.extend(probs.squeeze(-1)[mask].split(lens))
+
         all_arcs = [seq.tolist() for seq in all_arcs]
         all_rels = [self.vocab.id2rel(seq, tasks[0]) for seq in all_rels]
-
-        return all_arcs, all_rels
+        all_probs = [[round(p, 4) for p in seq.tolist()] for seq in all_probs]
+        return all_arcs, all_rels, all_probs
 
     def get_arc_loss(self, s_arc, gold_arcs, mask):
         if not self.config.crf:

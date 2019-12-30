@@ -183,10 +183,11 @@ def eisner(scores, mask):
         heads = p_c.new_ones(length + 1, dtype=torch.long)
         backtrack(p_i[i], p_c[i], heads, 0, length, True)
         predicts.append(heads.to(mask.device))
-    mask[:,0] = 1
+    mask[:, 0] = 1
     predicts = torch.cat(predicts)
     result = predicts.new_zeros(batch_size, seq_len)
     result = result.masked_scatter_(mask, predicts)
+    mask[:, 0] = 0
     return result
 
 def backtrack(p_i, p_c, heads, i, j, complete):
