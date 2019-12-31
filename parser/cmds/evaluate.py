@@ -47,6 +47,10 @@ class Evaluate(object):
                                help='whether to force tree')
         subparser.add_argument('--marg', action='store_true',
                                help='whether to use margin prob')
+        subparser.add_argument('--crf', action='store_true',
+                               help='whether to use crf loss')
+        subparser.add_argument('--partial', action='store_true',
+                               help='whether to partial')
         return subparser
 
     def __call__(self, config):
