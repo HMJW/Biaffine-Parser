@@ -69,11 +69,12 @@ class Vocab(object):
             words[embed.unk_index] = self.unk
 
         self.extend(words)
-        self.embed = torch.zeros(self.n_words, embed.dim)
-        self.embed[self.word2id(words)] = embed.vectors
+        ext_embed = torch.zeros(self.n_words, embed.dim)
+        ext_embed[self.word2id(words)] = embed.vectors
 
         if smooth:
-            self.embed /= torch.std(self.embed)
+            ext_embed /= torch.std(ext_embed)
+        return ext_embed
 
     def extend(self, words):
         self.words += sorted(set(words).difference(self.word_dict))

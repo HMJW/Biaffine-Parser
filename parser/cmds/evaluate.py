@@ -4,6 +4,7 @@ from parser import BiaffineParser, Model
 from parser.utils import Corpus
 from parser.utils.data import TextDataset, batchify
 from parser.metric import Metric
+from parser.modules import BertEmbedding
 import torch
 
 
@@ -51,11 +52,14 @@ class Evaluate(object):
 
     def __call__(self, config):
         print("Load the model")
+        device = 'cuda' if torch.cuda.is_available() else 'cpu'
+        parser = BiaffineParser.load(config.save_path)
+        bert = BertEmbedding(config.bert_model, config.bert_layer).to(device)
+        
+        vocab = parser.vocab
         task = config.task.split()
-        vocab = torch.load(config.vocab)
         task2id = {t:i for i,t in enumerate(vocab.task)}
-        parser = BiaffineParser.load(config.model)
-        model = Model(config, vocab, parser)
+        model = Model(config, vocab, parser, bert)
 
         print("Load the dataset")
         fdata = config.fdata.split()

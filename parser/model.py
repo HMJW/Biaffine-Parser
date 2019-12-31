@@ -8,45 +8,17 @@ from torch.nn.utils.rnn import pad_sequence
 
 class Model(object):
 
-    def __init__(self, config, vocab, parser):
+    def __init__(self, config, vocab, parser, bert):
         super(Model, self).__init__()
 
         self.config = config
         self.vocab = vocab
         self.parser = parser
+        self.bert = bert
         self.criterion = nn.CrossEntropyLoss(reduction="sum")
 
     def train(self, loader):
         self.parser.train()
-        # max_batch = max(len(l) for l in loader)
-        # loaders = [iter(l) for l in loader]
-        
-        # for _ in range(max_batch):
-        #     self.optimizer.zero_grad()
-
-        #     for i in range(len(loaders)):
-        #         try:
-        #             words, chars, subwords, bert_masks, lens, tasks, arcs, rels = next(loaders[i])
-        #         except StopIteration as s:
-        #             loaders[i] = iter(loader[i])
-        #             words, chars, subwords, bert_masks, lens, tasks ,arcs, rels = next(loaders[i])
-        #         mask = words.ne(self.vocab.pad_index)
-        #         mask[:, 0] = 0
-        #         s_arcs, s_rels = self.parser(words, chars, subwords, bert_masks, lens, tasks)
-        #         for i, (s_arc, s_rel) in enumerate(zip(s_arcs, s_rels)):
-        #             if s_arc is None or s_rel is None:
-        #                 continue
-        #             task_mask = tasks.eq(i)
-        #             current_mask = mask[task_mask]
-        #             gold_arcs, gold_rels = arcs[task_mask], rels[task_mask]
-        #             arc_loss, _ = self.get_arc_loss(s_arc, gold_arcs, mask)
-        #             rel_loss = self.get_rel_loss(s_rel, gold_arcs, gold_rels, current_mask)
-        #             loss = (arc_loss + rel_loss) / current_mask.sum()
-        #             loss.backward()
-        #         nn.utils.clip_grad_norm_(self.parser.parameters(),
-        #                     self.config.clip)
-        #         self.optimizer.step()
-        #         self.scheduler.step()
 
         for words, chars, subwords, bert_masks, lens, tasks, arcs, rels in loader:
             self.optimizer.zero_grad()
@@ -54,7 +26,8 @@ class Model(object):
             mask = words.ne(self.vocab.pad_index)
             # ignore the first token of each sentence
             mask[:, 0] = 0
-            s_arcs, s_rels = self.parser(words, chars, subwords, bert_masks, lens, tasks)
+            bert_embed = self.bert(subwords, lens, bert_masks)
+            s_arcs, s_rels = self.parser(words, chars, bert_embed, tasks)
 
             batch_loss = 0
             batch_size, word_num = mask.sum().float(), mask.size(0)
@@ -101,7 +74,8 @@ class Model(object):
             # ignore the first token of each sentence
             mask[:, 0] = 0
             word_num += mask.sum()
-            s_arcs, s_rels = self.parser(words, chars, subwords, bert_masks, lens, tasks)
+            bert_embed = self.bert(subwords, lens, bert_masks)
+            s_arcs, s_rels = self.parser(words, chars, bert_embed, tasks)
             for i, (s_arc, s_rel) in enumerate(zip(s_arcs, s_rels)):
                 if s_arc is None and s_rel is None:
                     continue
@@ -138,7 +112,8 @@ class Model(object):
             # ignore the first token of each sentence
             mask[:, 0] = 0
             lens = mask.sum(dim=1).tolist()
-            s_arcs, s_rels = self.parser(words, chars, subwords, bert_masks, sub_lens, tasks)
+            bert_embed = self.bert(subwords, lens, bert_masks)
+            s_arcs, s_rels = self.parser(words, chars, bert_embed, tasks)
             s_arc, s_rel = s_arcs[tasks[0]], s_rels[tasks[0]]
             if self.config.marg:
                 s_arc = crf(s_arc, mask)

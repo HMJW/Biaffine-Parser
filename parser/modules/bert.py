@@ -4,8 +4,6 @@ import torch
 import torch.nn as nn
 from transformers import BertModel
 
-from .scalar_mix import ScalarMix
-
 
 class BertEmbedding(nn.Module):
 
@@ -18,7 +16,6 @@ class BertEmbedding(nn.Module):
         self.n_layers = n_layers
         self.hidden_size = self.bert.config.hidden_size
         self.requires_grad = requires_grad
-        self.scalar_mix = ScalarMix(n_layers)
 
     def __repr__(self):
         s = self.__class__.__name__ + '('
@@ -37,10 +34,10 @@ class BertEmbedding(nn.Module):
             self.bert.eval()
         _, _, bert = self.bert(subwords, attention_mask=bert_mask)
         bert = bert[-self.n_layers:]
-        bert = self.scalar_mix(bert)
+        bert = torch.stack(bert, dim=0).permute(1, 2, 0, 3)
         bert = bert[bert_mask].split(bert_lens[mask].tolist())
         bert = torch.stack([i.mean(0) for i in bert])
-        bert_embed = bert.new_zeros(batch_size, seq_len, self.hidden_size)
-        bert_embed = bert_embed.masked_scatter_(mask.unsqueeze(-1), bert)
+        bert_embed = bert.new_zeros(batch_size, seq_len, self.n_layers, self.hidden_size)
+        bert_embed = bert_embed.masked_scatter_(mask.unsqueeze(-1).unsqueeze(-1), bert)
 
         return bert_embed

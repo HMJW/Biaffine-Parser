@@ -21,10 +21,8 @@ if __name__ == '__main__':
         subparser = subcommand.add_subparser(name, subparsers)
         subparser.add_argument('--conf', '-c', default='config.ini',
                                help='path to config file')
-        subparser.add_argument('--model', '-m', default='exp/mtl-bert-crf/model.char',
-                               help='path to model file')
-        subparser.add_argument('--vocab', '-v', default='exp/mtl-bert-crf/vocab.char',
-                               help='path to vocab file')
+        subparser.add_argument('--save_path', default='exp/mtl-bert-crf-for-demo',
+                               help='path to config file')
         subparser.add_argument('--device', '-d', default='-1',
                                help='ID of GPU to use')
         subparser.add_argument('--preprocess', '-p', action='store_true',

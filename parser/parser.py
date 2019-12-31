@@ -1,12 +1,14 @@
 # -*- coding: utf-8 -*-
 
 from parser.modules import (CHAR_LSTM, MLP, Biaffine, BiLSTM,
-                            IndependentDropout, SharedDropout, BertEmbedding)
+                            IndependentDropout, SharedDropout, ScalarMix)
 
 import torch
 import torch.nn as nn
 from torch.nn.utils.rnn import (pack_padded_sequence, pad_packed_sequence,
                                 pad_sequence)
+from transformers import BertConfig
+import os
 
 
 class BiaffineScorer(nn.Module):
@@ -55,23 +57,24 @@ class BiaffineScorer(nn.Module):
 
 class BiaffineParser(nn.Module):
 
-    def __init__(self, config, embed):
+    def __init__(self, config, vocab, embed):
         super(BiaffineParser, self).__init__()
 
         self.config = config
+        self.vocab = vocab
         # the embedding layer
         self.pretrained = nn.Embedding.from_pretrained(embed)
         self.word_embed = nn.Embedding(num_embeddings=config.n_words,
                                        embedding_dim=config.n_embed)
+        self.scalar_mix = ScalarMix(config.bert_layer)
         # the char-lstm layer
         self.char_lstm = CHAR_LSTM(n_chars=config.n_chars,
                                    n_embed=config.n_char_embed,
                                    n_out=config.n_embed)
-        self.bert = BertEmbedding(config.bert_model, config.bert_layer)
         self.embed_dropout = IndependentDropout(p=config.embed_dropout)
-
+        bert_config = BertConfig.from_pretrained(config.bert_model)
         # the word-lstm layer
-        self.lstm = BiLSTM(input_size=config.n_embed*2 + self.bert.hidden_size,
+        self.lstm = BiLSTM(input_size=config.n_embed*2 + bert_config.hidden_size,
                            hidden_size=config.n_lstm_hidden,
                            num_layers=config.n_lstm_layers,
                            dropout=config.lstm_dropout)
@@ -95,7 +98,7 @@ class BiaffineParser(nn.Module):
     def reset_parameters(self):
         nn.init.zeros_(self.word_embed.weight)
 
-    def forward(self, words, chars, subwords, sub_masks, sub_lens, tasks):
+    def forward(self, words, chars, bert_embed, tasks):
         # get the mask and lengths of given batch
         mask = words.ne(self.pad_index)
         lens = mask.sum(dim=1)
@@ -107,7 +110,7 @@ class BiaffineParser(nn.Module):
         word_embed = self.pretrained(words) + self.word_embed(ext_words)
         char_embed = self.char_lstm(chars[mask])
         char_embed = pad_sequence(torch.split(char_embed, lens.tolist()), True)
-        bert_embed = self.bert(subwords, sub_lens, sub_masks)
+        bert_embed = self.scalar_mix(bert_embed.permute(2, 0, 1, 3))
         word_embed, char_embed, bert_embed = self.embed_dropout(word_embed, char_embed, bert_embed)
         # concatenate the word and char representations
         x = torch.cat((word_embed, char_embed, bert_embed), dim=-1)
@@ -135,19 +138,24 @@ class BiaffineParser(nn.Module):
         return s_arcs, s_rels
 
     @classmethod
-    def load(cls, fname):
+    def load(cls, save_path):
         device = 'cuda' if torch.cuda.is_available() else 'cpu'
-        state = torch.load(fname, map_location=device)
-        parser = cls(state['config'], state['embed'])
-        parser.load_state_dict(state['state_dict'])
-        parser.to(device)
+        vocab_path = os.path.join(save_path, "vocab.pt")
+        ext_emb_path = os.path.join(save_path, "ext_emb.pt")
+        model_path = os.path.join(save_path, "model.pt")
+        config_path = os.path.join(save_path, "config.pt")
+
+        state = torch.load(model_path, map_location=device)
+        config = torch.load(config_path)
+        vocab = torch.load(vocab_path)
+        embed = torch.load(ext_emb_path, map_location=device)
+
+        parser = cls(config, vocab, embed)
+        parser.load_state_dict(state)
+        parser = parser.to(device)
 
         return parser
 
     def save(self, fname):
-        state = {
-            'config': self.config,
-            'embed': self.pretrained.weight,
-            'state_dict': self.state_dict()
-        }
+        state = self.state_dict()
         torch.save(state, fname)

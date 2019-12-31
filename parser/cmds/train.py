@@ -6,6 +6,7 @@ from parser import BiaffineParser, Model
 from parser.metric import Metric
 from parser.utils import Corpus, Embedding, Vocab
 from parser.utils.data import TextDataset, batchify
+from parser.modules import BertEmbedding
 
 import torch
 from torch.optim import Adam
@@ -79,12 +80,19 @@ class Train(object):
         print_corpus(devs, fdev)
         print_corpus(tests, ftest)
 
-        if config.preprocess or not os.path.exists(config.vocab):
+        vocab_path = os.path.join(config.save_path, "vocab.pt")
+        ext_emb_path = os.path.join(config.save_path, "ext_emb.pt")
+        model_path = os.path.join(config.save_path, "model.pt")
+        config_path = os.path.join(config.save_path, "config.pt")
+
+        if config.preprocess or not os.path.exists(vocab_path):
             vocab = Vocab.from_corpus(corpus=trains, min_freq=2, task=task, bert_vocab=config.bert_model)
-            vocab.read_embeddings(Embedding.load(config.fembed, config.unk))
-            torch.save(vocab, config.vocab)
+            emb = vocab.read_embeddings(Embedding.load(config.fembed, config.unk))
+            torch.save(vocab, vocab_path)
+            torch.save(emb, ext_emb_path)
         else:
-            vocab = torch.load(config.vocab)
+            vocab = torch.load(vocab_path)
+            emb = torch.load(config_path)
         config.update({
             'n_words': vocab.n_init,
             'n_chars': vocab.n_chars,
@@ -92,6 +100,7 @@ class Train(object):
             'pad_index': vocab.pad_index,
             'unk_index': vocab.unk_index
         })
+        torch.save(config, config_path)
 
         print("Load the dataset")
         trainset = TextDataset(vocab.numericalize(
@@ -111,10 +120,11 @@ class Train(object):
               f"{sum(len(test_loader) for test_loader in test_loaders):3} batches provided")
 
         print("Create the model")
-        parser = BiaffineParser(config, vocab.embed).to(config.device)
+        parser = BiaffineParser(config, vocab, emb).to(config.device)
+        bert = BertEmbedding(config.bert_model, config.bert_layer)
         print(f"{parser}\n")
 
-        model = Model(config, vocab, parser)
+        model = Model(config, vocab, parser, bert)
 
         total_time = timedelta()
         best_e, best_metric = 1, Metric()
@@ -143,14 +153,14 @@ class Train(object):
             # save the model if it is the best so far
             if dev_metric > best_metric:
                 best_e, best_metric = epoch, dev_metric
-                model.parser.save(config.model)
+                model.parser.save(model_path)
                 print(f"{t}s elapsed (saved)\n")
             else:
                 print(f"{t}s elapsed\n")
             total_time += t
             if epoch - best_e >= config.patience:
                 break
-        model.parser = BiaffineParser.load(config.model)
+        model.parser = BiaffineParser.load(config.save_path)
         metric = evaluate(model, test_loaders, task, config.punct)
 
         print(f"max score of dev is {best_metric.score:.2%} at epoch {best_e}")
