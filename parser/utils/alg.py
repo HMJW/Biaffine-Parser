@@ -187,6 +187,7 @@ def eisner(scores, mask):
     predicts = torch.cat(predicts)
     result = predicts.new_zeros(batch_size, seq_len)
     result = result.masked_scatter_(mask, predicts)
+    mask[:,0] = 0
     return result
 
 def backtrack(p_i, p_c, heads, i, j, complete):
