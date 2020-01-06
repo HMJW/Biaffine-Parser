@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 
-from parser.modules import (CHAR_LSTM, MLP, Biaffine, BiLSTM,
+from .modules import (CHAR_LSTM, MLP, Biaffine, BiLSTM,
                             IndependentDropout, SharedDropout, ScalarMix)
-
+from .utils.alg import crf, eisner
 import torch
 import torch.nn as nn
 from torch.nn.utils.rnn import (pack_padded_sequence, pad_packed_sequence,
@@ -159,3 +159,51 @@ class BiaffineParser(nn.Module):
     def save(self, fname):
         state = self.state_dict()
         torch.save(state, fname)
+
+    @torch.no_grad()
+    def predict_batch(self, word_list, bert_embed, rule="codt", partial_labels=None):
+        self.eval()
+        task2id = {t:i for i, t in enumerate(self.vocab.task)}
+        task = task2id[rule]
+
+        word_idxs = [self.vocab.word2id([self.vocab.ROOT] + seq) for seq in word_list]
+        char_idxs = [self.vocab.char2id([self.vocab.ROOT] + seq) for seq in word_list]
+        task_idxs = torch.full((len(word_list),), task, dtype=torch.long)
+
+        if torch.cuda.is_available():
+            word_idxs = pad_sequence(word_idxs, True).cuda()
+            char_idxs = pad_sequence(char_idxs, True).cuda()
+            task_idxs = task_idxs.cuda()
+        else:
+            word_idxs = pad_sequence(word_idxs, True)
+            char_idxs = pad_sequence(char_idxs, True)
+
+        s_arc, s_rel = self.forward(word_idxs, char_idxs, bert_embed, task_idxs)
+        s_arc, s_rel = s_arc[task], s_rel[task]
+        
+        mask = word_idxs.ne(self.vocab.pad_index)
+        mask[:, 0] = 0
+        lens = mask.sum(dim=1).tolist()
+        
+        all_arcs, all_rels, all_probs = [], [], []
+        s_arc = crf(s_arc, mask)
+        pred_arcs, pred_rels = self.decode(s_arc, s_rel, mask)
+        all_arcs.extend(torch.split(pred_arcs[mask], lens))
+        all_rels.extend(torch.split(pred_rels[mask], lens))
+
+        arc_probs = s_arc.gather(-1, pred_arcs.unsqueeze(-1))
+        rel_probs = s_rel.softmax(dim=-1).max(dim=-1)[0].gather(-1, pred_arcs.unsqueeze(-1))
+        probs = arc_probs * rel_probs
+        all_probs.extend(probs.squeeze(-1)[mask].split(lens))
+        
+        all_arcs = [seq.tolist() for seq in all_arcs]
+        all_rels = [self.vocab.id2rel(seq, task) for seq in all_rels]
+        all_probs = [[round(p, 4) for p in seq.tolist()] for seq in all_probs]
+
+        return all_arcs, all_rels, all_probs
+    
+    def decode(self, s_arc, s_rel, mask):
+        arc_preds = eisner(s_arc, mask)
+        rel_preds = s_rel.argmax(-1)
+        rel_preds = rel_preds.gather(-1, arc_preds.unsqueeze(-1)).squeeze(-1)
+        return arc_preds, rel_preds

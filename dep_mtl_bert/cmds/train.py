@@ -2,11 +2,11 @@
 
 import os
 from datetime import datetime, timedelta
-from parser import BiaffineParser, Model
-from parser.metric import Metric
-from parser.utils import Corpus, Embedding, Vocab
-from parser.utils.data import TextDataset, batchify
-from parser.modules import BertEmbedding
+from dep_mtl_bert import BiaffineParser, Model
+from dep_mtl_bert.metric import Metric
+from dep_mtl_bert.utils import Corpus, Embedding, Vocab
+from dep_mtl_bert.utils.data import TextDataset, batchify
+from dep_mtl_bert.modules import BertEmbedding
 
 import torch
 from torch.optim import Adam

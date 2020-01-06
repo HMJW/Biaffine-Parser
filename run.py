@@ -2,8 +2,8 @@
 
 import argparse
 import os
-from parser.cmds import Evaluate, Predict, Train
-from parser.config import Config
+from dep_mtl_bert.cmds import Evaluate, Predict, Train
+from dep_mtl_bert.config import Config
 
 import torch
 
