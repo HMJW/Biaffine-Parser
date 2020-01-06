@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
-from parser.metric import Metric
-from parser.utils.alg import crf, eisner
+from .metric import Metric
+from .utils.alg import crf, eisner
 import torch
 import torch.nn as nn
 from torch.nn.utils.rnn import pad_sequence
