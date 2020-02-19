@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from parser.metric import Metric
-
+from parser.utils.alg import eisner
 import torch
 import torch.nn as nn
 
@@ -48,19 +48,20 @@ class Model(object):
             mask = words.ne(self.vocab.pad_index)
             # ignore the first token of each sentence
             mask[:, 0] = 0
+
+            s_arc, s_rel = self.parser(words, chars)
+            pred_arcs, pred_rels = self.decode(s_arc, s_rel, mask)
+
             partial_mask = arcs.ne(-1)
             mask = mask & partial_mask
             # ignore all punctuation if not specified
             if not punct:
                 puncts = words.new_tensor(self.vocab.puncts)
                 mask &= words.unsqueeze(-1).ne(puncts).all(-1)
-            s_arc, s_rel = self.parser(words, chars)
-            s_arc, s_rel = s_arc[mask], s_rel[mask]
-            gold_arcs, gold_rels = arcs[mask], rels[mask]
-            pred_arcs, pred_rels = self.decode(s_arc, s_rel)
 
-            loss += self.get_loss(s_arc, s_rel, gold_arcs, gold_rels)
-            metric(pred_arcs, pred_rels, gold_arcs, gold_rels)
+            gold_arcs, gold_rels = arcs[mask], rels[mask]
+            loss += self.get_loss(s_arc[mask], s_rel[mask], gold_arcs, gold_rels)
+            metric(pred_arcs[mask], pred_rels[mask], gold_arcs, gold_rels)
         loss /= len(loader)
 
         return loss, metric
@@ -77,10 +78,10 @@ class Model(object):
             lens = mask.sum(dim=1).tolist()
             s_arc, s_rel = self.parser(words, chars)
             p_arc, p_rel = s_arc.softmax(dim=-1), s_rel.softmax(dim=-1)
-            s_arc, s_rel = s_arc[mask], s_rel[mask]
-            p_arc, p_rel = p_arc[mask], p_rel[mask]
 
-            pred_arcs, pred_rels = self.decode(s_arc, s_rel)
+            pred_arcs, pred_rels = self.decode(s_arc, s_rel, mask)
+            pred_arcs, pred_rels = pred_arcs[mask], pred_rels[mask]
+            p_arc, p_rel = p_arc[mask], p_rel[mask]
             pred_p_arcs = p_arc[torch.arange(len(p_arc)), pred_arcs] 
             pred_p_rels = p_rel[torch.arange(len(p_rel)), pred_arcs, pred_rels]
 
@@ -103,8 +104,11 @@ class Model(object):
 
         return loss
 
-    def decode(self, s_arc, s_rel):
-        pred_arcs = s_arc.argmax(dim=-1)
-        pred_rels = s_rel[torch.arange(len(s_rel)), pred_arcs].argmax(dim=-1)
-
-        return pred_arcs, pred_rels
+    def decode(self, s_arc, s_rel, mask):
+        if self.config.tree:
+            arc_preds = eisner(s_arc, mask)
+        else:
+            arc_preds = s_arc.argmax(-1)
+        rel_preds = s_rel.argmax(-1)
+        rel_preds = rel_preds.gather(-1, arc_preds.unsqueeze(-1)).squeeze(-1)
+        return arc_preds, rel_preds

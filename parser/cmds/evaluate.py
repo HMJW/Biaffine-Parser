@@ -19,9 +19,10 @@ class Evaluate(object):
                                help='max num of buckets to use')
         subparser.add_argument('--punct', action='store_true',
                                help='whether to include punctuation')
-        subparser.add_argument('--fdata', default='data/ptb/test.conllx',
+        subparser.add_argument('--fdata', default='../data/treebanks/codt/test.conll',
                                help='path to dataset')
-
+        subparser.add_argument('--tree', action='store_true',
+                               help='whether to force tree')
         return subparser
 
     def __call__(self, config):
