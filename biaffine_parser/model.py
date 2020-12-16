@@ -97,12 +97,16 @@ class Model(object):
     
     @torch.no_grad()
     def get_hidden(self, words):
+        self.parser.eval()
         words = ['<ROOT>'] + words
         words_idx = self.vocab.word2id(words)
         chars_idx = self.vocab.char2id(words)
+        if torch.cuda.is_available():
+            words_idx = words_idx.cuda()
+            chars_idx = chars_idx.cuda()
 
         hidden = self.parser.get_hidden(words_idx.unsqueeze(0), chars_idx.unsqueeze(0))
-        return hidden.squeeze(0)
+        return hidden.squeeze(0).detach()
         
 
     def get_loss(self, s_arc, s_rel, gold_arcs, gold_rels):
