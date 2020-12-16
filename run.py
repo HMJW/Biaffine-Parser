@@ -2,7 +2,7 @@
 
 import argparse
 import os
-from biaffine_parser.cmds import Evaluate, Predict, Train
+from biaffine_parser.cmds import Evaluate, Predict, Train, Hidden
 from biaffine_parser.config import Config
 
 import torch
@@ -15,7 +15,8 @@ if __name__ == '__main__':
     subcommands = {
         'evaluate': Evaluate(),
         'predict': Predict(),
-        'train': Train()
+        'train': Train(),
+        'hidden': Hidden()
     }
     for name, subcommand in subcommands.items():
         subparser = subcommand.add_subparser(name, subparsers)

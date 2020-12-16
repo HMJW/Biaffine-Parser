@@ -94,6 +94,16 @@ class Model(object):
         all_probs = [seq.tolist() for seq in all_probs]
 
         return all_arcs, all_rels, all_probs
+    
+    @torch.no_grad()
+    def get_hidden(self, words):
+        words = ['<ROOT>'] + words
+        words_idx = self.vocab.word2id(words)
+        chars_idx = self.vocab.char2id(words)
+
+        hidden = self.parser.get_hidden(words_idx.unsqueeze(0), chars_idx.unsqueeze(0))
+        return hidden.squeeze(0)
+        
 
     def get_loss(self, s_arc, s_rel, gold_arcs, gold_rels):
         s_rel = s_rel[torch.arange(len(s_rel)), gold_arcs]

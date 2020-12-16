@@ -74,7 +74,7 @@ class BiLSTM(nn.Module):
 
         return output
 
-    def forward(self, sequence, hx=None):
+    def forward(self, sequence, hx=None, return_all_layers=False):
         x = sequence.data
         batch_sizes = sequence.batch_sizes.tolist()
         max_batch_size = batch_sizes[0]
@@ -83,6 +83,7 @@ class BiLSTM(nn.Module):
             init = x.new_zeros(max_batch_size, self.hidden_size)
             hx = (init, init)
 
+        all_layers = []
         for layer in range(self.num_layers):
             if self.training:
                 mask = SharedDropout.get_mask(x[:max_batch_size], self.dropout)
@@ -101,6 +102,11 @@ class BiLSTM(nn.Module):
                                           batch_sizes=batch_sizes,
                                           reverse=True)
             x = torch.cat([f_output, b_output], -1)
+            all_layers.append(x)
         x = PackedSequence(x, sequence.batch_sizes)
-
-        return x
+        all_layers = torch.stack(all_layers, dim=0).transpose(0, 1)
+        all_layers = PackedSequence(all_layers, sequence.batch_sizes)
+        if return_all_layers:
+            return x, all_layers
+        else:
+            return x
