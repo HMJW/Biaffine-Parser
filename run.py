@@ -2,8 +2,8 @@
 
 import argparse
 import os
-from parser.cmds import Evaluate, Predict, Train
-from parser.config import Config
+from biaffine_parser.cmds import Evaluate, Predict, Train
+from biaffine_parser.config import Config
 
 import torch
 
@@ -21,9 +21,9 @@ if __name__ == '__main__':
         subparser = subcommand.add_subparser(name, subparsers)
         subparser.add_argument('--conf', '-c', default='config.ini',
                                help='path to config file')
-        subparser.add_argument('--model', '-m', default='exp/codt-char/model.char',
+        subparser.add_argument('--model', '-m', default='exp/ptb-char/model.char',
                                help='path to model file')
-        subparser.add_argument('--vocab', '-v', default='exp/codt-char/vocab.char',
+        subparser.add_argument('--vocab', '-v', default='exp/ptb-char/vocab.char',
                                help='path to vocab file')
         subparser.add_argument('--device', '-d', default='-1',
                                help='ID of GPU to use')

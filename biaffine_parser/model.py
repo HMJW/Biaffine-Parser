@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
-from parser.metric import Metric
-from parser.utils.alg import eisner
+from biaffine_parser.metric import Metric
+from biaffine_parser.utils.alg import eisner
 import torch
 import torch.nn as nn
 

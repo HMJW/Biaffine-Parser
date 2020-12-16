@@ -2,10 +2,10 @@
 
 import os
 from datetime import datetime, timedelta
-from parser import BiaffineParser, Model
-from parser.metric import Metric
-from parser.utils import Corpus, Embedding, Vocab
-from parser.utils.data import TextDataset, batchify
+from biaffine_parser import BiaffineParser, Model
+from biaffine_parser.metric import Metric
+from biaffine_parser.utils import Corpus, Embedding, Vocab
+from biaffine_parser.utils.data import TextDataset, batchify
 
 import torch
 from torch.optim import Adam
@@ -22,15 +22,15 @@ class Train(object):
                                help='max num of buckets to use')
         subparser.add_argument('--punct', action='store_true',
                                help='whether to include punctuation')
-        subparser.add_argument('--ftrain', default='../data/treebanks/ctb9/train.conll',
+        subparser.add_argument('--ftrain', default='../EMNLP-UCCA/data/ptb/train.conllx',
                                help='path to train file')
-        subparser.add_argument('--fdev', default='../data/treebanks/ctb9/dev.conll',
+        subparser.add_argument('--fdev', default='../EMNLP-UCCA/data/ptb/dev.conllx',
                                help='path to dev file')
-        subparser.add_argument('--ftest', default='../data/treebanks/ctb9/test.conll',
+        subparser.add_argument('--ftest', default='../EMNLP-UCCA/data/ptb/test.conllx',
                                help='path to test file')
-        subparser.add_argument('--fembed', default='../data/embedding/giga.100.txt',
+        subparser.add_argument('--fembed', default='../data/embedding/glove.6B.100d.txt',
                                help='path to pretrained embeddings')
-        subparser.add_argument('--unk', default=None,
+        subparser.add_argument('--unk', default='unk',
                                help='unk token in pretrained embeddings')
 
         return subparser

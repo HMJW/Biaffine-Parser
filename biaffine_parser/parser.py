@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from parser.modules import (CHAR_LSTM, MLP, Biaffine, BiLSTM,
+from biaffine_parser.modules import (CHAR_LSTM, MLP, Biaffine, BiLSTM,
                             IndependentDropout, SharedDropout)
 
 import torch
