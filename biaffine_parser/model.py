@@ -107,7 +107,19 @@ class Model(object):
 
         hidden = self.parser.get_hidden(words_idx.unsqueeze(0), chars_idx.unsqueeze(0))
         return hidden.squeeze(0).detach()
-        
+
+    @torch.no_grad()
+    def get_biaffine_score(self, words):
+        self.parser.eval()
+        words = ['<ROOT>'] + words
+        words_idx = self.vocab.word2id(words)
+        chars_idx = self.vocab.char2id(words)
+        if torch.cuda.is_available():
+            words_idx = words_idx.cuda()
+            chars_idx = chars_idx.cuda()
+
+        scores = self.parser.get_biaffine_score(words_idx.unsqueeze(0), chars_idx.unsqueeze(0))
+        return scores.squeeze(0).detach()   
 
     def get_loss(self, s_arc, s_rel, gold_arcs, gold_rels):
         s_rel = s_rel[torch.arange(len(s_rel)), gold_arcs]
