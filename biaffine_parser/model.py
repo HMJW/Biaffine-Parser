@@ -106,7 +106,7 @@ class Model(object):
             chars_idx = chars_idx.cuda()
 
         hidden = self.parser.get_hidden(words_idx.unsqueeze(0), chars_idx.unsqueeze(0))
-        return hidden.squeeze(0).detach()
+        return hidden.squeeze(0).detach().cpu()
 
     @torch.no_grad()
     def get_biaffine_score(self, words):
@@ -119,7 +119,8 @@ class Model(object):
             chars_idx = chars_idx.cuda()
 
         scores = self.parser.get_biaffine_score(words_idx.unsqueeze(0), chars_idx.unsqueeze(0))
-        return scores.squeeze(0).detach()   
+        scores = scores.softmax(dim=-1)
+        return scores.squeeze(0).detach().cpu()
 
     def get_loss(self, s_arc, s_rel, gold_arcs, gold_rels):
         s_rel = s_rel[torch.arange(len(s_rel)), gold_arcs]
@@ -138,3 +139,4 @@ class Model(object):
         rel_preds = s_rel.argmax(-1)
         rel_preds = rel_preds.gather(-1, arc_preds.unsqueeze(-1)).squeeze(-1)
         return arc_preds, rel_preds
+``
