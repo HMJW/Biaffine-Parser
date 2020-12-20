@@ -139,4 +139,3 @@ class Model(object):
         rel_preds = s_rel.argmax(-1)
         rel_preds = rel_preds.gather(-1, arc_preds.unsqueeze(-1)).squeeze(-1)
         return arc_preds, rel_preds
-``
